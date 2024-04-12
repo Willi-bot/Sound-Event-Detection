@@ -1,0 +1,79 @@
+import torch
+
+class PrelimModel(torch.nn.Module):
+    def __init__(self, input_size, output_size, output_shape):
+        super(PrelimModel, self).__init__()
+        self.flatten = torch.nn.Flatten(start_dim=1)
+        self.relu = torch.nn.ReLU()
+        self.fc1 = torch.nn.Linear(input_size, 5096)
+        self.fc2 = torch.nn.Linear(5096, 2048)
+        self.fc3 = torch.nn.Linear(2048, output_size)
+        self.output_shape = output_shape
+
+    def forward(self, x):
+        x = self.flatten(x)
+        x = self.relu(self.fc1(x.float()))
+        x = self.relu(self.fc2(x.float()))
+        x = self.relu(self.fc3(x.float()))
+        x = torch.reshape(x, self.output_shape)
+        return x
+
+class BasicCNN(torch.nn.Module):
+    def __init__(self, num_classes, frequency_dim, gru_hidden_channels=32, conv_kernels=None, conv_channels=None,
+                 maxpool_kernels=None, bidirectional_gru=False, dropout=0.):
+        super(BasicCNN, self).__init__()
+        if conv_kernels is None:
+            conv_kernels = [3, 3, 3]
+        if conv_channels is None:
+            conv_channels = [128, 128, 128]
+        if maxpool_kernels is None:
+            maxpool_kernels = [5, 5, 2]
+
+        self.flatten = torch.nn.Flatten(start_dim=2)
+        self.relu = torch.nn.ReLU()
+        self.dropout = torch.nn.Dropout(dropout)
+        self.num_classes = num_classes
+        self.frequency_dim = frequency_dim
+
+        # stage 1
+        conv1, conv2, conv3 = conv_channels
+        max1, max2, max3 = maxpool_kernels
+        kernel1, kernel2, kernel3 = conv_kernels
+        pad1, pad2, pad3 = kernel1 // 2, kernel2 // 2, kernel3 // 2
+        self.conv1 = torch.nn.Conv2d(1, conv1, kernel1, padding=pad1)
+        self.maxpool1 = torch.nn.MaxPool2d((1, max1), 1)
+        self.conv2 = torch.nn.Conv2d(conv1, conv2, kernel2, padding=pad2)
+        self.maxpool2 = torch.nn.MaxPool2d((1, max2), 1)
+        self.conv3 = torch.nn.Conv2d(conv2, conv3, kernel3, padding=pad3)
+        self.maxpool3 = torch.nn.MaxPool2d((max3, max3), max3)
+
+        # stage 2
+        self.gru_input_dim = int(((self.frequency_dim - (max1 + max2 - 2)) // max3) * conv3)
+        self.gru = torch.nn.GRU(self.gru_input_dim, gru_hidden_channels, batch_first=True, bidirectional=bidirectional_gru)
+        if bidirectional_gru:
+            fc_input_dim = gru_hidden_channels * 2
+        else:
+            fc_input_dim = gru_hidden_channels
+        self.fc1 = torch.nn.Linear(fc_input_dim, num_classes)
+
+    def forward(self, x):
+        shape = x.shape
+        x = torch.reshape(x, (shape[0],  1, shape[1], shape[2]))
+        x = self.dropout(self.conv1(x.float()))
+        x = self.maxpool1(x)
+        x = self.relu(x)
+        x = self.dropout(self.conv2(x))
+        x = self.maxpool2(x)
+        x = self.relu(x)
+        x = self.dropout(self.conv3(x))
+        x = self.maxpool3(x)
+        x = self.relu(x)
+
+        # bring time axis to the front
+        shape = x.shape
+        x = torch.reshape(x, (shape[0], shape[2], shape[1], shape[3]))
+        x = self.flatten(x)
+        x, _ = self.gru(x)
+
+        x = self.fc1(x)
+        return x
