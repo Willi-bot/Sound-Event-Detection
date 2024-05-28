@@ -1,5 +1,8 @@
 import torch
 
+
+device = torch.device("cuda" if torch.cuda.is_available() else "")
+
 class PrelimModel(torch.nn.Module):
     def __init__(self, input_size, output_size, output_shape):
         super(PrelimModel, self).__init__()
@@ -18,10 +21,10 @@ class PrelimModel(torch.nn.Module):
         x = torch.reshape(x, self.output_shape)
         return x
 
-class BasicCNN(torch.nn.Module):
-    def __init__(self, num_classes, frequency_dim, gru_hidden_channels=32, conv_kernels=None, conv_channels=None,
-                 maxpool_kernels=None, bidirectional_gru=False, dropout=0.):
-        super(BasicCNN, self).__init__()
+class BasicRCNN(torch.nn.Module):
+    def __init__(self, num_classes, frequency_dim, conv_kernels=None, conv_channels=None, maxpool_kernels=None,
+                 gru_hidden_channels=32, bidirectional_gru=False, dropout=0.):
+        super(BasicRCNN, self).__init__()
         if conv_kernels is None:
             conv_kernels = [3, 3, 3]
         if conv_channels is None:
@@ -74,6 +77,102 @@ class BasicCNN(torch.nn.Module):
         x = torch.reshape(x, (shape[0], shape[2], shape[1], shape[3]))
         x = self.flatten(x)
         x, _ = self.gru(x)
+        x = self.relu(x)
 
         x = self.fc1(x)
         return x
+
+
+class AdvancedRCNN(torch.nn.Module):
+
+    def __init__(self, num_classes, dropout=0):
+        super(AdvancedRCNN, self).__init__()
+        self.dropout = torch.nn.Dropout(dropout)
+
+        self.cnn1 = CNNBlock(1, 128, dropout=dropout)
+        self.cnn2 = CNNBlock(128, 128, dropout=dropout)
+        self.cnn3 = CNNBlock(128, 128, dropout=dropout)
+        self.cnn4 = CNNBlock(128, 128, dropout=dropout)
+        self.cnn5 = CNNBlock(128, 128)
+        self.cnn6 = CNNBlock(128, 128, maxpool_kernel=(2, 2), stride=2, dropout=dropout)
+
+        # 1408/1152
+        self.flatten = torch.nn.Flatten(start_dim=2)
+        self.rnn = torch.nn.GRU(1152, 1152, batch_first=True, bidirectional=True)
+
+        self.fc = torch.nn.Linear(1152 * 3, num_classes)
+
+
+    def forward(self, x):
+        shape = x.shape
+        x = torch.reshape(x, (shape[0], 1, shape[1], shape[2]))
+
+        x = self.cnn1(x)
+        x = self.cnn2(x)
+        x = self.cnn3(x)
+        x = self.cnn4(x)
+        x = self.cnn5(x)
+        x = self.cnn6(x)
+
+        # bring time axis to the front and flatten last two dimensions
+        shape = x.shape
+        x = torch.reshape(x, (shape[0], shape[2], shape[1], shape[3]))
+        x = self.flatten(x)
+
+        residual = x
+        x, _ = self.rnn(x)
+        x = self.dropout(x)
+
+        x = torch.cat([x, residual], dim=-1)
+
+        x = self.fc(x)
+
+        return x
+
+
+# from DCASE2019_Yan_54
+class CNNBlock(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, conv_channel=128, kernel_size=3, stride=1, maxpool_kernel=(1, 5),
+                 maxpool_stride=1, dropout=0):
+        super(CNNBlock, self).__init__()
+        self.dropout = torch.nn.Dropout(dropout)
+
+        # only works with stride = 1
+        padding = kernel_size // 2
+        self.bn = torch.nn.BatchNorm2d(in_channels)
+        self.conv = torch.nn.Conv2d(in_channels, conv_channel, kernel_size=kernel_size, padding=padding, stride=stride)
+        self.shake = ShakeShakeBlock(conv_channel, out_channels)
+        self.avgpool = torch.nn.AvgPool2d(maxpool_kernel, maxpool_stride)
+
+
+    def forward(self, x):
+        x = self.bn(x)
+        x = self.conv(x)
+        x = self.dropout(self.shake(x))
+        x = self.avgpool(x)
+
+        return x
+
+
+# from DCASE2019_Yan_54
+class ShakeShakeBlock(torch.nn.Module):
+
+    def __init__(self, in_channels, out_channels, stride=1):
+        super(ShakeShakeBlock, self).__init__()
+        self.branch1 = torch.nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
+        self.branch2 = torch.nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
+        self.sigmoid = torch.nn.Sigmoid()
+
+    def forward(self, x):
+        if self.training:
+            a = torch.tensor(0.5).detach().to(device)
+        else:
+            a = torch.rand(1).detach().to(device)
+
+        x1 = self.branch1(x)
+        x2 = self.branch2(x)
+
+        # a = a.expand_as(x1)
+        out = self.sigmoid(a * x1 + (1. - a) * x2)
+
+        return x * out
