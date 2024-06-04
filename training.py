@@ -1,5 +1,7 @@
 import argparse
 import random
+
+import pandas as pd
 import tqdm
 import os
 import yaml
@@ -8,10 +10,11 @@ import torch
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 
-from evaluation import evaluate
-from utils import get_binary_event_labels, get_classes, get_split_data, get_splits, normalize_features, class_weights, dataset_ratio
+from evaluation import evaluate, get_prediction_from_raw_output
+from utils import (get_binary_event_labels, get_classes, get_split_data, get_splits, normalize_features, class_weights,
+                   dataset_ratio, get_test_files, get_wav_duration)
 from data_loading import get_dataloader
-from feature_extraction import extract_mel_features, sampling_rates
+from feature_extraction import extract_mel_features, sampling_rates, extract_mel_features_single_file
 from models import PrelimModel, BasicRCNN, AdvancedRCNN
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -161,12 +164,15 @@ if __name__ == "__main__":
         print("saving labels...")
         np.save(label_filepath, labels)
 
-    if args.normalize:
-        features = normalize_features(features)
+
 
     train_features, train_labels = get_split_data(train_files, features, labels, dataset=args.dataset)
     dev_features, dev_labels = get_split_data(dev_files, features, labels, dataset=args.dataset)
     test_features, test_labels = get_split_data(test_files, features, labels, dataset=args.dataset)
+
+    # TODO rework normalizing!!!
+    if args.normalize:
+        features, mean, std = normalize_features(train_features)
 
     train_loader = get_dataloader(train_features, train_labels, batch_size=args.batch_size, shuffle=True, drop_last=True, use_specaug=args.use_specaug)
     test_loader = get_dataloader(dev_features, dev_labels, batch_size=args.batch_size, shuffle=False, drop_last=False, use_specaug=False)
@@ -196,11 +202,20 @@ if __name__ == "__main__":
     best_results = {}
     best_class_results = {}
     best_state = None
+    already_trained = False
 
-    writer = SummaryWriter(log_dir="./" + args.dataset + "_results")
+    writer = SummaryWriter(log_dir="./" + args.dataset + "_results/tensorboard")
 
     # training
     for epoch in range(1, args.epochs + 1):
+
+        # check if model was already trained and load it in that case
+        if os.path.exists(f'{args.dataset}_results/weights.pth'):
+            print("Model was already trained. Load best state and skip to evaluation")
+            best_state = torch.load(f'{args.dataset}_results/weights.pth')
+            already_trained = True
+            break
+
         model.to(device)
         model.train()
         for index, (data) in tqdm.tqdm(
@@ -233,7 +248,7 @@ if __name__ == "__main__":
         if dev_results['f1'] > max_f1:
             max_f1 = dev_results['f1']
             best_epoch = epoch
-            best_state = model.cpu().state_dict()
+            best_state = model.cpu().state_dict().copy()
             best_results = dev_results.copy()
             best_class_results = dev_class_results.copy()
 
@@ -241,14 +256,15 @@ if __name__ == "__main__":
             print(f"No improvements for more than {args.early_stopping} epochs. Stopping here...")
             break
 
-    print(f"Best dev results found at epoch {best_epoch + 1}:\n{yaml.dump(best_results)}")
-    best_results["Epoch"] = best_epoch + 1
-    with open(os.path.join(result_dir, f"dev_fold{args.fold}.yaml"), "w") as f:
-        yaml.dump(best_results, f)
-        yaml.dump(best_class_results, f)
+    if not already_trained:
+        print(f"Best dev results found at epoch {best_epoch + 1}:\n{yaml.dump(best_results)}")
+        best_results["Epoch"] = best_epoch + 1
+        with open(os.path.join(result_dir, f"dev_fold{args.fold}.yaml"), "w") as f:
+            yaml.dump(best_results, f)
+            yaml.dump(best_class_results, f)
 
-    torch.save(best_state, os.path.join(
-            result_dir, "state.pth.tar"))
+        torch.save(best_state, os.path.join(
+                result_dir, "weights.pth"))
 
     model.load_state_dict(best_state)
     model.eval()
@@ -262,3 +278,41 @@ if __name__ == "__main__":
     with open(os.path.join(result_dir, f"test_fold{args.fold}.yaml"), "w") as fp:
         yaml.dump(test_results, fp)
         yaml.dump(test_class_results, fp)
+
+    print("\nCalculate predictions on test set...")
+    # get predictions on test set
+    # get every test file
+    test_files = get_test_files(args.dataset, fold=args.fold)
+
+    predictions = []
+    for test_file in test_files:
+        # turn audio to features ready for model
+        features = extract_mel_features_single_file(test_file, args.dataset, args.clip_length, args.n_fft, args.n_mels,
+                                                    hop_length, win_length)
+
+        if args.normalize:
+            features, _, _ = normalize_features(features, mean, std)
+
+        features = list(features.values())
+
+        # pass features to model
+        raw_prediction = []
+        for feature in features:
+            feature = torch.from_numpy(feature).float().unsqueeze(0).to(device)
+            output = model(feature)
+            raw_prediction.append(output.squeeze())
+
+        raw_prediction = torch.cat(raw_prediction, dim=0)
+
+        audio_duration = get_wav_duration(test_file)
+
+        # turn output into appropriate labels with this format:
+        prediction = get_prediction_from_raw_output(raw_prediction, id2cls, audio_duration, args.block_length,
+                                                    test_file, decision_threshold=args.decision_threshold)
+
+        predictions += prediction
+
+    print("Saving predictions...")
+    # save the predicted labels
+    pred_df = pd.DataFrame(predictions, columns=['filename', 'onset', 'offset', 'event_label'])
+    pred_df.to_csv(f'{args.dataset}_results/test_predictions.tsv', sep='\t', index=False)

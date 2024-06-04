@@ -81,7 +81,6 @@ def get_tut_features(audio_files, clip_length, n_fft, n_mels, hop_length, win_le
 
 def get_desed_features(audio_files, clip_length, n_fft, n_mels, hop_length, win_length):
     sampling_rate = sampling_rates['desed_2022']
-    n_mfcc = int(n_mels // 4)
 
     features = {}
     for audio_file in audio_files:
@@ -108,5 +107,17 @@ def get_desed_features(audio_files, clip_length, n_fft, n_mels, hop_length, win_
         mel_spec = np.reshape(mel_spec, (shape[1], shape[0]))
 
         features[file_name] = mel_spec
+
+    return features
+
+
+def extract_mel_features_single_file(audio_file, dataset, clip_length, n_fft, n_mels, hop_length, win_length):
+    clip_length = 0.001 * clip_length  # ms to s
+    if dataset == 'TUT':
+        features = get_tut_features([audio_file], clip_length, n_fft, n_mels, hop_length, win_length)
+    elif dataset == 'desed_2022':
+        features = get_desed_features([audio_file], clip_length, n_fft, n_mels, hop_length, win_length)
+    else:
+        features = None
 
     return features

@@ -117,20 +117,21 @@ def get_split_data(split, features=None, labels=None, dataset=None):
     return split_features, split_labels
 
 
-def normalize_features(feature_dict):
+def normalize_features(feature_dict, mean=None, std=None):
     # Convert the feature dictionary to a numpy array
     features = np.array(list(feature_dict.values()))
 
-    # Calculate mean and standard deviation across all samples
-    mean = np.mean(features, axis=0)
-    std_dev = np.std(features, axis=0)
+    if mean is None and std is None:
+        # Calculate mean and standard deviation across all samples
+        mean = np.mean(features, axis=(1, 2), keepdims=True)
+        std = np.std(features, axis=(1, 2), keepdims=True)
 
     # Normalize each feature
     normalized_features = {}
     for key, value in feature_dict.items():
-        normalized_features[key] = (value - mean) / std_dev
+        normalized_features[key] = (value - mean) / std
 
-    return normalized_features
+    return normalized_features, mean, std
 
 
 def get_file_names(file_directory):
@@ -215,3 +216,19 @@ def get_clip_events(metadata, clip_length, block_length, columns, cls2id, onset_
         clip_events.append(binary_labels)
 
     return clip_events
+
+
+def get_test_files(dataset, fold=None):
+    if dataset == 'TUT':
+        assert fold is not None
+        file_path = f'dataset/TUT/evaluation_setup/street_fold{fold}_test.txt'
+        test_df = pd.read_csv(file_path, sep='\t', names=['filename', 'scene'], header=None)
+        test_files = test_df['filename'].tolist()
+        test_files = ['dataset/TUT/' + test_file for test_file in test_files]
+    elif dataset == 'desed_2022':
+        file_path = f'dataset/desed_2022/audio/eval21_16k/*.wav'
+        test_files = glob.glob(file_path)
+    else:
+        test_files = None
+
+    return test_files

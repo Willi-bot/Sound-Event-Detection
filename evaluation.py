@@ -39,3 +39,33 @@ def evaluate(model, device, data_loader, id2cls, decision_threshold=0.5):
     results['accuracy'] = float(accuracy_score(y, y_hat))
 
     return results, class_results
+
+def get_prediction_from_raw_output(raw_prediction, id2cls, audio_duration, block_length, file_name, decision_threshold=0.5):
+    raw_prediction = torch.sigmoid(raw_prediction)
+    raw_prediction = torch.where(raw_prediction > decision_threshold, 1, 0).to('cpu')
+
+    # convert block_length to ms
+    block_length = float(block_length) / 1000
+
+    # cutoff prediction at end of audio file
+    cutoff = int(audio_duration / block_length) + 1
+
+    found_events = []
+    for idx, cls in id2cls.items():
+        cls_slice = raw_prediction[:cutoff, idx].detach().clone()
+
+        array = cls_slice.numpy()
+
+        # Find the start and end points of each block of 1s
+        blocks = np.where(np.diff(np.concatenate(([0], array, [0]))))[0].reshape(-1, 2)
+        blocks = [(start, end) for start, end in blocks]
+
+        # convert block to seconds and append to found events
+        for block in blocks:
+            start, end = block
+            start = start * block_length
+            end = end * block_length
+
+            found_events.append((file_name, start, end, cls))
+
+    return found_events
