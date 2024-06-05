@@ -5,6 +5,7 @@ import numpy as np
 def evaluate(model, device, data_loader, id2cls, decision_threshold=0.5):
     model.to(device)
     model.eval()
+    num_classes = len(id2cls.keys())
 
     y = []
     y_hat = []
@@ -22,9 +23,9 @@ def evaluate(model, device, data_loader, id2cls, decision_threshold=0.5):
 
     results = {}
     y = np.concatenate(y, axis=0).astype(np.int64)
-    y = np.reshape(y, (-1, y.shape[-1]))
+    y = np.reshape(y, (-1, num_classes))
     y_hat = np.concatenate(y_hat, axis=0).astype(np.int64)
-    y_hat = np.reshape(y_hat, (-1, y_hat.shape[-1]))
+    y_hat = np.reshape(y_hat, (-1, num_classes))
 
     f1s = f1_score(y, y_hat, average=None).tolist()
     precisions = precision_score(y, y_hat, average=None).tolist()
