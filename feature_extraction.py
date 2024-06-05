@@ -12,7 +12,7 @@ sampling_rates = {
 }
 
 audio_file_dirs = {
-    'TUT': "dataset/TUT/audio/street/*",
+    'TUT': "dataset/TUT/audio/street/*.wav",
     'desed_2022': "dataset/desed_2022/audio/**/*.wav"
 }
 
@@ -56,7 +56,7 @@ def get_tut_features(audio_files, clip_length, n_fft, n_mels, hop_length, win_le
     for audio_file in audio_files:
         audio_file = audio_file.replace("\\", "/")
         file_name = "/".join(audio_file.split('/')[-3:])
-        audio_length = get_wav_duration(audio_file)
+        audio_length = librosa.get_duration(path=audio_file)
 
         for i in range(int(audio_length // clip_length) + 1):
             offset = i * clip_length

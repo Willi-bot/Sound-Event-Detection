@@ -15,7 +15,8 @@ from utils import (get_binary_event_labels, get_classes, get_split_data, get_spl
                    dataset_ratio, get_test_files, get_wav_duration)
 from data_loading import get_dataloader
 from feature_extraction import extract_mel_features, sampling_rates, extract_mel_features_single_file
-from models import PrelimModel, BasicRCNN, AdvancedRCNN
+from models import BasicRCNN, AdvancedRCNN
+from nnet.CRNN import CRNN
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -108,6 +109,12 @@ if __name__ == "__main__":
         '--use-specaug',
         action='store_true'
     )
+    parser.add_argument(
+        '--model',
+        default='Basic',
+        choices=['Basic', 'Advanced', 'Baseline'],
+        required=True
+    )
     args = parser.parse_args()
 
     config = vars(args)
@@ -137,7 +144,6 @@ if __name__ == "__main__":
     num_features_frames = np.ceil(float(win_length) / hop_length)
 
     feature_filepath = dataset_dir + f'/features/features_{args.clip_length}_{args.n_fft}_{args.n_mels}_{hop_length}_{win_length}.npy'
-    mfcc_feature_filepath = dataset_dir + f'/features/mfcc_features_{args.clip_length}_{args.n_fft}_{args.n_mels}_{hop_length}_{win_length}.npy'
     # check if extracted features already exist
     if os.path.isfile(feature_filepath):
         # load features
@@ -181,11 +187,26 @@ if __name__ == "__main__":
     # initialize model & training stuff (optimizer, scheduler, loss func...)
     if args.use_weights:
         weights = class_weights[args.dataset]
-        loss_fn = torch.nn.BCEWithLogitsLoss(weight=torch.tensor(weights).to(device), pos_weight=dataset_ratio[args.dataset])
+        loss_fn = torch.nn.BCEWithLogitsLoss(weight=torch.tensor(weights).to(device))
     else:
-        loss_fn = torch.nn.BCEWithLogitsLoss(pos_weight=dataset_ratio[args.dataset])
-    model = AdvancedRCNN(num_classes, args.dropout)
-    config['model'] = {'name': 'AdvancedCRNN'}
+        loss_fn = torch.nn.BCEWithLogitsLoss()
+
+    if args.model == 'Basic':
+        model = BasicRCNN(num_classes, 64)
+    elif args.model == 'Advanced':
+        model = AdvancedRCNN(num_classes, args.dropout)
+    elif args.model == 'Baseline':
+        model = CRNN(dropout=0.5, rnn_layers=2, n_in_channel=1, nclass=num_classes, attention=True, n_RNN_cell=128,
+                     activation='glu', rnn_type='BGRU', kernel_size=[3, 3, 3, 3, 3, 3, 3],
+                     padding=[1, 1, 1, 1, 1, 1, 1], stride=[1, 1, 1, 1, 1, 1, 1],
+                     nb_filters=[ 16, 32, 64, 128, 128, 128, 128],
+                     pooling=[ [ 2, 2 ], [ 1, 2 ], [ 1, 2 ], [ 1, 2 ], [ 1, 2 ], [ 1, 2 ], [ 1, 2 ] ],
+                     dropout_recurrent=0)
+    else:
+        print("Choose a Model!")
+        model = None
+        exit(1)
+    config['model'] = {'name': args.model}
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=0.1)
     config['optimizer'] = 'Adam'
 
@@ -225,8 +246,9 @@ if __name__ == "__main__":
         ):
             features, labels = data
             features = features.to(device)
-            output = model(features).view(-1, num_classes)
-            labels = labels.view(-1, num_classes).to(device)
+            output = model(features)
+            output = output.reshape(-1, num_classes)
+            labels = labels.reshape(-1, num_classes).to(device)
             loss = loss_fn(output, labels)
             optimizer.zero_grad()
             loss.backward()
