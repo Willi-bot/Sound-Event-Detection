@@ -1,0 +1,16 @@
+Audio File Count: 24
+Ratio 'Class not present' to 'Class present' (for every class over every audio file):
+  brakes squeaking: 53.210172854855514
+  car: 1.237100439902193
+  children: 13.823115048763277
+  large vehicle: 4.984585700892775
+  people speaking: 6.119213440811152
+  people walking: 3.2921881251724443
+Total length for each class (in s):
+  brakes squeaking: 101.97697399999991
+  car: 2471.1404499999994
+  children: 372.9438359999999
+  large vehicle: 923.7380269999998
+  people speaking: 776.5168770000002
+  people walking: 1287.9653049999993
+Total length of dataset (in s): 5528.189387755102

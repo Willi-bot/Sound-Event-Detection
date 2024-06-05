@@ -1,0 +1,77 @@
+Strongly Labeled:
+  Audio File Count: 3470
+  Ratio 'Class not present' to 'Class present' (for every class over every audio file):
+    Alarm_bell_ringing: 8.196419185788844
+    Blender: 29.03612130262562
+    Cat: 87.48947908367553
+    Dishes: 31.13719579007159
+    Dog: 29.3244549584213
+    Electric_shaver_toothbrush: 22.596260363412952
+    Frying: 6.986722433270256
+    Running_water: 7.98617147539235
+    Speech: 1.5948700672199865
+    Vacuum_cleaner: 54.90670834328918
+  Total length for each class (in s):
+    Alarm_bell_ringing: 3759.5729999999967
+    Blender: 1151.1010000000012
+    Cat: 390.71999999999986
+    Dishes: 1075.8439999999973
+    Dog: 1140.1559999999968
+    Electric_shaver_toothbrush: 1465.2579999999982
+    Frying: 4329.010999999999
+    Running_water: 3847.5349999999985
+    Speech: 13324.21600000003
+    Vacuum_cleaner: 618.4339999999999
+  Total length of dataset (in s): 34574.609267573695
+Synthetic Data:
+  Audio File Count: 10000
+  Ratio 'Class not present' to 'Class present' (for every class over every audio file):
+    Alarm_bell_ringing: 33.74470977049019
+    Blender: 22.54725781586469
+    Cat: 38.863793390742615
+    Dishes: 33.754092207471935
+    Dog: 37.81755516168678
+    Electric_shaver_toothbrush: 9.524691663370707
+    Frying: 6.899034540503265
+    Running_water: 11.271459407853056
+    Speech: 3.083784223949519
+    Vacuum_cleaner: 9.108071456787384
+  Total length for each class (in s):
+    Alarm_bell_ringing: 2878.1360000000127
+    Blender: 4246.778999999999
+    Cat: 2508.5419999999935
+    Dishes: 2877.3590000000218
+    Dog: 2576.1539999999986
+    Electric_shaver_toothbrush: 9501.465999999979
+    Frying: 12659.775000000036
+    Running_water: 8148.989999999961
+    Speech: 24487.09199999988
+    Vacuum_cleaner: 9893.084000000004
+  Total length of dataset (in s): 100000.0
+Unlabeled Data:
+  Audio File Count: 14412
+  Total Length of dataset (in s): 142846.2372108845
+Weakly Labeled:
+  Audio File Count: 1578
+  Ratio 'Class not present' to 'Class present' (for every class over every audio file):
+    Alarm_bell_ringing: 6.660194174757281
+    Blender: 10.776119402985074
+    Cat: 8.121387283236995
+    Dishes: 7.576086956521739
+    Dog: 6.373831775700935
+    Electric_shaver_toothbrush: 14.320388349514563
+    Frying: 8.228070175438596
+    Running_water: 3.5739130434782607
+    Speech: 1.8690909090909091
+    Vacuum_cleaner: 8.449101796407186
+  Total number of appearances per class:
+    Alarm_bell_ringing: 206
+    Blender: 134
+    Cat: 173
+    Dishes: 184
+    Dog: 214
+    Electric_shaver_toothbrush: 103
+    Frying: 171
+    Running_water: 345
+    Speech: 550
+    Vacuum_cleaner: 167
