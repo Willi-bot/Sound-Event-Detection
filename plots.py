@@ -5,11 +5,8 @@ import librosa
 import yaml
 import argparse
 
-import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-
-from utils import get_wav_duration
 
 def plot_class_percentages(class_length, total_length, label):
     classes = list(class_length.keys())
@@ -21,7 +18,7 @@ def plot_class_percentages(class_length, total_length, label):
     plt.xticks(rotation=45)
     plt.subplots_adjust(bottom=0.2)
     plt.tight_layout()
-    plt.savefig(f'C:/Users/Willi/Desktop/Plots/{label}_total.png')
+    plt.savefig(f'plots/{label}_total.png')
     plt.show()
 
     percentages = [event_length / total_length for event_length in event_lengths]
@@ -34,7 +31,7 @@ def plot_class_percentages(class_length, total_length, label):
     plt.subplots_adjust(bottom=0.2)
     plt.tight_layout()
     plt.tight_layout()
-    plt.savefig(f'C:/Users/Willi/Desktop/Plots/{label}_percent.png')
+    plt.savefig(f'plots/{label}_percent.png')
     plt.show()
 
 
@@ -48,7 +45,7 @@ def plot_class_counts(class_counts, total_count, label):
     plt.xticks(rotation=45)
     plt.subplots_adjust(bottom=0.2)
     plt.tight_layout()
-    plt.savefig(f'C:/Users/Willi/Desktop/Plots/{label}_total.png')
+    plt.savefig(f'plots/{label}_total.png')
     plt.show()
 
     percentages = [event_count / total_count for event_count in event_counts]
@@ -60,7 +57,7 @@ def plot_class_counts(class_counts, total_count, label):
     plt.ylim(0, 1)
     plt.subplots_adjust(bottom=0.2)
     plt.tight_layout()
-    plt.savefig(f'C:/Users/Willi/Desktop/Plots/{label}_percent.png')
+    plt.savefig(f'plots/{label}_percent.png')
     plt.show()
 
 
@@ -156,7 +153,7 @@ if __name__ == '__main__':
         ratios = get_pos_neg_ratio(class_length, total_length)
         TUT_data_dict["Ratio \'Class not present\' to \'Class present\' (for every class over every audio file)"] = ratios
 
-        with open(os.path.join("C:/Users/Willi/Desktop/Plots", f"TUT_stats.yaml"), "w") as fp:
+        with open(os.path.join("plots/TUT/", f"TUT_stats.yaml"), "w") as fp:
             yaml.dump(TUT_data_dict, fp)
 
     if args.desed:
@@ -210,5 +207,5 @@ if __name__ == '__main__':
         total_length = get_total_length(audio_path)
         Desed_data_dict["Unlabeled Data"]["Total Length of dataset (in s)"] = total_length
 
-        with open(os.path.join("C:/Users/Willi/Desktop/Plots", f"Desed_stats.yaml"), "w") as fp:
+        with open(os.path.join("plots/Desed", f"Desed_stats.yaml"), "w") as fp:
             yaml.dump(Desed_data_dict, fp)
