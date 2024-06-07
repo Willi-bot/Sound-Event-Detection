@@ -1,10 +1,12 @@
 import glob
 import os
 import wave
+
+import librosa
 import numpy as np
 import pandas as pd
 import torch
-
+from tqdm import tqdm
 
 class_weights = {
     'TUT': [0.8, 0.5, 0.85, 0.95, 0.85, 0.9]
@@ -53,14 +55,14 @@ def get_wav_duration(file_path):
         return duration
 
 
-def get_binary_labels(labels, num_classes):
+def binarize_labels(labels, num_classes):
     bl = np.zeros(num_classes)
     bl[labels] = 1
 
     return bl
 
 
-def get_splits(dataset, fold, dataset_location):
+def get_splits(dataset, dataset_location, fold=None):
     if dataset == 'TUT':
         dataset_dir = dataset_location + dataset
         split_pattern = dataset_dir + f'/evaluation_setup/street_fold{fold}_'
@@ -74,17 +76,7 @@ def get_splits(dataset, fold, dataset_location):
         dev_files = dev_set['file'].unique().tolist()
         test_files = test_set['file'].unique().tolist()
     elif dataset == 'desed_2022':
-        dataset_dir = dataset_location + dataset
-        # train
-        train_files = get_file_names(dataset_dir + '/audio/train/strong_label_real_16k')
-        train_files += get_file_names(dataset_dir + '/audio/train/synthetic21_train/soundscapes_16k')
-        # validation
-        dev_files = get_file_names(dataset_dir + '/audio/validation/validation_16k')
-        dev_files += get_file_names(dataset_dir + '/audio/validation/synthetic21_validation/soundscapes_16k')
-        # test
-        test_files = get_file_names(dataset_dir + '/audio/eval21')
-
-        train_files, dev_files, test_files = 'train', 'validation', 'validation'
+        train_files, dev_files, test_files = 'train', 'validation', 'eval21_16k'
     else:
         train_files, dev_files, test_files = [], [], []
 
@@ -140,6 +132,71 @@ def get_file_names(file_directory):
     return filenames
 
 
+def get_binary_labels(metadata_files, dataset, clip_length, block_length, cls2id):
+    clip_length = 0.001 * clip_length  # ms to s
+    block_length = 0.001 * block_length  # ms to s
+
+    all_events = []
+    labels = {}
+    for metadata_file in metadata_files:
+
+        if dataset == 'TUT':
+            metadata = pd.read_csv(metadata_file, sep='\t',
+                               names=['onset', 'offset', 'event'], header=None)
+            filenames = list(metadata_file.split('/')[-1].replace('.ann', '.wav'))
+            event_keys = ['onset', 'offset', 'event']
+        elif dataset == 'desed_2022':
+            metadata = pd.read_csv(metadata_file, sep='\t')
+            filenames = metadata['filename'].unique().tolist()
+            event_keys = ['onset', 'offset', 'event_label']
+        else:
+            metadata = None
+            filenames = None
+            event_keys = None
+
+        for filename in tqdm(filenames):
+            if dataset == 'TUT':
+                audio_path = 'dataset/TUT/audio/street/' + filename
+                audio_length = librosa.get_duration(path=audio_path)
+                file_metadata = metadata
+            elif dataset == 'desed_2022':
+                audio_length = 10.
+                file_metadata = metadata.loc[metadata['filename'] == filename]
+            else:
+                audio_length = 0.
+                file_metadata = None
+
+            for i in range(int(np.ceil(audio_length / clip_length))):
+                onset_clip = i * clip_length
+
+                clip_events = get_clip_events(file_metadata, clip_length, block_length, event_keys,
+                                              cls2id, onset_clip=onset_clip)
+
+                labels[(i, filename)] = np.stack(clip_events)
+                all_events += clip_events.copy()
+
+    return labels
+
+
+def get_weak_labels(metadata_files, dataset, cls2id):
+    num_classes = len(cls2id.keys())
+
+    labels = {}
+    for metadata_file in metadata_files:
+        metadata = pd.read_csv(metadata_file, sep='\t')
+
+        for i, row in metadata.iterrows():
+            events = row['event_labels'].split(',')
+            events = [cls2id[cls] for cls in events]
+
+            binary_events = binarize_labels(events, num_classes)
+
+            labels[(0, row['filename'])] = binary_events
+
+    return labels
+
+
+
 def get_tut_labels(dataset_dir, clip_length, block_length, cls2id):
     audio_file_paths = glob.glob(os.path.join(dataset_dir, "audio/street/*.wav"))
     metadata_file_paths = glob.glob(os.path.join(dataset_dir, "meta/street/*.ann"))
@@ -190,9 +247,10 @@ def get_desed_labels(metadata_path, clip_length, block_length, cls2id):
 def get_clip_events(metadata, clip_length, block_length, columns, cls2id, onset_clip=0):
     onset, offset, event = columns
     num_classes = len(list(cls2id.keys()))
+    metadata = metadata.sort_values(by=[onset])
 
-    clip_length = 0.001 * clip_length  # ms to s
-    block_length = 0.001 * block_length  # ms to s
+    # clip_length = 0.001 * clip_length  # ms to s
+    # block_length = 0.001 * block_length  # ms to s
 
     clip_events = []
     for j in range(int(clip_length // block_length) + 1):
@@ -201,18 +259,15 @@ def get_clip_events(metadata, clip_length, block_length, columns, cls2id, onset_
 
         block_events = []
         for index, row in metadata.iterrows():
-            if row[onset] < onset_block:
-                continue
-
-            if onset_block < row[onset] < offset_block or onset_block < row[offset] < offset_block:
+            if onset_block <= row[onset] < offset_block or onset_block < row[offset] <= offset_block:
                 block_events.append(cls2id[row[event]])
-            elif onset_block > row[onset] and offset_block < row[offset]:
+            elif onset_block >= row[onset] and offset_block <= row[offset]:
                 block_events.append(cls2id[row[event]])
 
             if row[onset] > offset_block:
                 break
 
-        binary_labels = get_binary_labels(list(set(block_events)), num_classes)
+        binary_labels = binarize_labels(list(set(block_events)), num_classes)
         clip_events.append(binary_labels)
 
     return clip_events
@@ -232,3 +287,22 @@ def get_test_files(dataset, fold=None):
         test_files = None
 
     return test_files
+
+
+def get_labels(name, dataset_location, dataset, clip_length, block_length, cls2id, metadata_location, weak=False):
+    file_path = dataset_location + '/' + dataset + '/' + name + f'_{clip_length}_{block_length}.npy'
+
+    if os.path.isfile(file_path):
+        print('loading labels from ' + file_path + "...")
+        labels = np.load(file_path, allow_pickle=True).item()
+    else:
+        labels_file = dataset_location + '/' + dataset + '/' + metadata_location
+        print('extracting labels from ' + labels_file + "...")
+        if not weak:
+            labels = get_binary_labels([labels_file], dataset, clip_length, block_length, cls2id)
+        else:
+            labels = get_weak_labels([labels_file], dataset, cls2id)
+        print("saving features...")
+        np.save(file_path, labels)
+
+    return labels

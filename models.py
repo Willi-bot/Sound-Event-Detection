@@ -102,6 +102,9 @@ class AdvancedRCNN(torch.nn.Module):
 
         self.fc = torch.nn.Linear(1152 * 3, num_classes)
 
+        self.sigmoid = torch.nn.Sigmoid()
+        self.softmax = torch.nn.Softmax(dim=-1)
+
 
     def forward(self, x):
         shape = x.shape
@@ -126,6 +129,16 @@ class AdvancedRCNN(torch.nn.Module):
         x = torch.cat([x, residual], dim=-1)
 
         x = self.fc(x)
+
+        return x
+
+    def get_weak_logits(self, x):
+        sig_x = self.sigmoid(x)
+        soft_x = self.softmax(x)
+
+        x = soft_x * sig_x
+
+        x = torch.mean(x, dim=1)
 
         return x
 
