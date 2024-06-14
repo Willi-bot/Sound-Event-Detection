@@ -1,0 +1,37 @@
+filename	onset	offset	event_label
+dataset/TUT/audio/street/b095.wav	0.0	241.76	people walking
+dataset/TUT/audio/street/b095.wav	0.0	241.76	car
+dataset/TUT/audio/street/b095.wav	0.0	241.76	large vehicle
+dataset/TUT/audio/street/b095.wav	0.0	241.76	brakes squeaking
+dataset/TUT/audio/street/b095.wav	0.0	241.76	people speaking
+dataset/TUT/audio/street/b095.wav	0.0	241.76	children
+dataset/TUT/audio/street/a008.wav	0.0	205.16	people walking
+dataset/TUT/audio/street/a008.wav	0.0	205.16	car
+dataset/TUT/audio/street/a008.wav	0.0	205.16	large vehicle
+dataset/TUT/audio/street/a008.wav	0.0	205.16	brakes squeaking
+dataset/TUT/audio/street/a008.wav	0.0	205.16	people speaking
+dataset/TUT/audio/street/a008.wav	0.0	205.16	children
+dataset/TUT/audio/street/a127.wav	0.0	300.6	people walking
+dataset/TUT/audio/street/a127.wav	0.0	300.6	car
+dataset/TUT/audio/street/a127.wav	0.0	300.6	large vehicle
+dataset/TUT/audio/street/a127.wav	0.0	300.6	brakes squeaking
+dataset/TUT/audio/street/a127.wav	0.0	300.6	people speaking
+dataset/TUT/audio/street/a127.wav	0.0	300.6	children
+dataset/TUT/audio/street/a131.wav	0.0	240.84	people walking
+dataset/TUT/audio/street/a131.wav	0.0	240.84	car
+dataset/TUT/audio/street/a131.wav	0.0	240.84	large vehicle
+dataset/TUT/audio/street/a131.wav	0.0	240.84	brakes squeaking
+dataset/TUT/audio/street/a131.wav	0.0	240.84	people speaking
+dataset/TUT/audio/street/a131.wav	0.0	240.84	children
+dataset/TUT/audio/street/b003.wav	0.0	235.36	people walking
+dataset/TUT/audio/street/b003.wav	0.0	235.36	car
+dataset/TUT/audio/street/b003.wav	0.0	235.36	large vehicle
+dataset/TUT/audio/street/b003.wav	0.0	235.36	brakes squeaking
+dataset/TUT/audio/street/b003.wav	0.0	235.36	people speaking
+dataset/TUT/audio/street/b003.wav	0.0	235.36	children
+dataset/TUT/audio/street/b007.wav	0.0	217.08	people walking
+dataset/TUT/audio/street/b007.wav	0.0	217.08	car
+dataset/TUT/audio/street/b007.wav	0.0	217.08	large vehicle
+dataset/TUT/audio/street/b007.wav	0.0	217.08	brakes squeaking
+dataset/TUT/audio/street/b007.wav	0.0	217.08	people speaking
+dataset/TUT/audio/street/b007.wav	0.0	217.08	children
