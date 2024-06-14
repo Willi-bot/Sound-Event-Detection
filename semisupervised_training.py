@@ -9,11 +9,12 @@ import yaml
 import torch
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
+import librosa
 
 from evaluation import evaluate, get_prediction_from_raw_output
-from utils import (get_classes, get_splits, get_test_files, get_wav_duration, get_labels)
+from utils import get_classes, get_splits, get_test_files, get_labels
 from data_loading import get_dataloader
-from feature_extraction import sampling_rates, extract_mel_features_single_file, get_features
+from feature_extraction import sampling_rates, get_features, extract_mel_spectrograms
 from models import AdvancedRCNN
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -82,11 +83,6 @@ if __name__ == "__main__":
         type=float
     )
     parser.add_argument(
-        '--early-stopping',
-        default=20,
-        type=int
-    )
-    parser.add_argument(
         '--normalize',
         action='store_true'
     )
@@ -113,14 +109,9 @@ if __name__ == "__main__":
         action='store_true'
     )
     parser.add_argument(
-        '--delta-start',
-        default=0,
-        type=int
-    )
-    parser.add_argument(
-        '--delta-end',
-        default=1000,
-        type=int
+        '--unlabelled-threshold',
+        default=0.4,
+        type=float
     )
     args = parser.parse_args()
 
@@ -159,26 +150,17 @@ if __name__ == "__main__":
     strong_train_labels = get_labels('labels/strong_train', args.dataset_location, args.dataset, args.clip_length,
                         args.block_length, cls2id, 'metadata/train/audioset_strong.tsv')
 
-    strong_features, strong_labels = [], []
-    for key in strong_train_features.keys():
-        strong_features.append(strong_train_features[key])
-        strong_labels.append(strong_train_labels[key])
-
     # get strong synthetic features and labels
     print("\nGet features and labels of synthetic strongly annotated data...")
-    synthetic_train_features = get_features("features/synthetic_train", args.dataset_location, args.dataset,
+    strong_train_features = strong_train_features | get_features("features/synthetic_train", args.dataset_location, args.dataset,
                                          args.clip_length, args.n_fft, args.n_mels, hop_length, win_length,
                                          'audio/train/synthetic21_train/soundscapes/*.wav')
 
-    synthetic_train_labels = get_labels('labels/synthetic_train', args.dataset_location, args.dataset, args.clip_length,
+    strong_train_labels = strong_train_labels | get_labels('labels/synthetic_train', args.dataset_location, args.dataset, args.clip_length,
                         args.block_length, cls2id, 'metadata/train/synthetic21_train/soundscapes.tsv')
 
-    for key in synthetic_train_features.keys():
-        strong_features.append(synthetic_train_features[key])
-        strong_labels.append(synthetic_train_labels[key])
-
-    strong_train_dataloader = get_dataloader(strong_features, strong_labels, args.batch_size, shuffle=True, drop_last=True,
-                                             use_specaug=True)
+    strong_train_dataloader = get_dataloader(strong_train_features, strong_train_labels, args.batch_size, shuffle=True, drop_last=True,
+                                             use_specaug=args.use_specaug)
 
     # get weakly annotated
     print("\nGet features and labels of real weakly annotated data...")
@@ -188,13 +170,8 @@ if __name__ == "__main__":
     weak_train_labels = get_labels('labels/weak_train', args.dataset_location, args.dataset, args.clip_length,
                         args.block_length, cls2id, 'metadata/train/weak.tsv', weak=True)
 
-    weak_features, weak_labels = [], []
-    for key in weak_train_features.keys():
-        weak_features.append(weak_train_features[key])
-        weak_labels.append(weak_train_labels[key])
-
-    weak_train_dataloader = get_dataloader(weak_features, weak_labels, args.batch_size, shuffle=True, drop_last=True,
-                                           use_specaug=True)
+    weak_train_dataloader = get_dataloader(weak_train_features, weak_train_labels, args.batch_size, shuffle=True, drop_last=True,
+                                           use_specaug=args.use_specaug)
 
     # get unannotated data
     print("\nGet features of unannotated data...")
@@ -202,12 +179,8 @@ if __name__ == "__main__":
                                              args.clip_length, args.n_fft, args.n_mels, hop_length, win_length,
                                              "audio/train/unlabel_in_domain_16k/*.wav")
 
-    unlabelled_features = []
-    for key in unlabelled_train_features.keys():
-        unlabelled_features.append(unlabelled_train_features[key])
-
-    unlabelled_train_dataloader = get_dataloader(unlabelled_features, unlabelled_features, args.batch_size, shuffle=True, drop_last=True,
-                                           use_specaug=True)
+    unlabelled_train_dataloader = get_dataloader(unlabelled_train_features, unlabelled_train_features, args.batch_size, shuffle=True, drop_last=True,
+                                           use_specaug=args.use_specaug)
 
     # get validation data
     print("\nGet features and labels of validation data...")
@@ -231,25 +204,20 @@ if __name__ == "__main__":
                                      args.clip_length, args.block_length, cls2id,
                                      "metadata/validation/synthetic21_validation/soundscapes.tsv")
 
-    eval_features, eval_labels = [], []
-    for key in strong_eval_features.keys():
-        eval_features.append(strong_eval_features[key])
-        eval_labels.append(strong_eval_labels[key])
-
-    strong_eval_dataloader = get_dataloader(eval_features, eval_labels, args.batch_size, shuffle=False, drop_last=False,
-                                            use_specaug=False)
+    strong_eval_dataloader = get_dataloader(strong_eval_features, strong_eval_labels, args.batch_size, shuffle=False,
+                                            drop_last=False, use_specaug=False)
 
     # initialize model & training stuff (optimizer, scheduler, loss func...)
     strong_loss_fn = torch.nn.BCEWithLogitsLoss()
     weak_loss_fn = torch.nn.BCEWithLogitsLoss()
 
 
-    student_model = AdvancedRCNN(num_classes, args.dropout)
+    student_model = AdvancedRCNN(num_classes, args.dropout).to(device)
     config['model'] = {'name': "AdvancedRCNN"}
-    optimizer = torch.optim.Adam(student_model.parameters(), lr=args.learning_rate, weight_decay=0.1)
+    optimizer = torch.optim.Adam(student_model.parameters(), lr=args.learning_rate, weight_decay=1e-4)
     config['optimizer'] = 'Adam'
 
-    teacher_model = AdvancedRCNN(num_classes)
+    teacher_model = AdvancedRCNN(num_classes).to(device)
 
     result_dir = "./" + args.dataset + "_semisupervised_results"
     if not os.path.exists(result_dir):
@@ -263,10 +231,12 @@ if __name__ == "__main__":
     best_step = 0
     best_results = {}
     best_class_results = {}
-    delta = 0
+    delta = 0.
     ema_rate = args.ema_decay
-    best_state = None
+    best_student_state = None
+    best_teacher_state = None
     already_trained = False
+    unlabelled_f1 = 0.
 
     strong_train_iter = iter(strong_train_dataloader)
     weak_train_iter = iter(weak_train_dataloader)
@@ -280,7 +250,8 @@ if __name__ == "__main__":
         # check if model was already trained and load it in that case
         if os.path.exists(f'{args.dataset}_semisupervised_results/weights.pth'):
             print("Model was already trained. Load best state and skip to evaluation")
-            best_state = torch.load(f'{args.dataset}_semisupervised_results/weights.pth')
+            best_student_state = torch.load(f'{args.dataset}_semisupervised_results/student_weights.pth')
+            best_teacher_state = torch.load(f'{args.dataset}_semisupervised_results/teacher_weights.pth')
             already_trained = True
             break
 
@@ -310,14 +281,7 @@ if __name__ == "__main__":
         pseudo_labels = torch.sigmoid(teacher_output)
 
         if args.use_hard_labels:
-            pseudo_labels = torch.where(teacher_output > args.decision_threshold, 1, 0)
-
-        if step < args.delta_start:
-            delta = torch.tensor(0.).to(device)
-        elif step > args.delta_end:
-            delta = torch.tensor(1.).to(device)
-        else:
-            delta = float(step - args.delta_start) / (args.delta_end - args.delta_start)
+            pseudo_labels = torch.where(teacher_output > args.decision_threshold, 1., 0.).to(device)
 
         student_model.to(device)
         student_model.train()
@@ -339,8 +303,6 @@ if __name__ == "__main__":
         optimizer.step()
 
         # update teacher
-        teacher_model.train()
-
         with torch.no_grad():
             for student_param, teacher_param in zip(student_model.parameters(), teacher_model.parameters()):
                 teacher_param.data = ema_rate * teacher_param.data + (1 - ema_rate) * student_param.data
@@ -348,9 +310,22 @@ if __name__ == "__main__":
             for student_buffer, teacher_buffer in zip(student_model.buffers(), teacher_model.buffers()):
                 teacher_buffer.data = ema_rate * teacher_buffer.data + (1 - ema_rate) * student_buffer.data
 
-        if step % args.val_step == 0:
+        teacher_model.eval()
+        if unlabelled_f1 < args.unlabelled_threshold and (step % int(args.val_step // 10)) == 0:
+            teacher_results, _ = evaluate(
+                teacher_model,
+                device,
+                strong_eval_dataloader,
+                id2cls
+            )
+            unlabelled_f1 = teacher_results['f1']
+            if unlabelled_f1 > args.unlabelled_threshold:
+                delta = 1.
+            else:
+                delta = 0.
+
+        if (step % args.val_step) == 0:
             student_model.eval()
-            teacher_model.eval()
             dev_results, dev_class_results = evaluate(
                 student_model,
                 device,
@@ -366,37 +341,36 @@ if __name__ == "__main__":
             if dev_results['f1'] > max_f1:
                 max_f1 = dev_results['f1']
                 best_step = step
-                best_state = student_model.cpu().state_dict().copy()
+                best_student_state = student_model.cpu().state_dict().copy()
+                best_teacher_state = teacher_model.cpu().state_dict().copy()
                 best_results = dev_results.copy()
                 best_class_results = dev_class_results.copy()
 
-            if args.early_stopping is not None and step - best_step > args.early_stopping:
-                print(f"No improvements for more than {args.early_stopping} epochs. Stopping here...")
-                break
-
     if not already_trained:
         print(f"Best dev results found at epoch {best_step + 1}:\n{yaml.dump(best_results)}")
-        best_results["Epoch"] = best_step + 1
-        with open(os.path.join(result_dir, f"dev_fold{args.fold}.yaml"), "w") as f:
+        best_results["Step"] = best_step + 1
+        with open(os.path.join(result_dir, f"dev.yaml"), "w") as f:
             yaml.dump(best_results, f)
             yaml.dump(best_class_results, f)
 
-        torch.save(best_state, os.path.join(
-                result_dir, "weights.pth"))
+        torch.save(best_student_state, os.path.join(
+                result_dir, "student_weights.pth"))
+        torch.save(best_teacher_state, os.path.join(
+                result_dir, "student_teacher_weights.pth"))
 
-    student_model.load_state_dict(best_state)
+    student_model.load_state_dict(best_student_state)
     student_model.eval()
 
-    print("\nCalculate predictions on test set...")
+    print("\nCalculate predictions on test set for student model...")
     # get predictions on test set
     # get every test file
     test_files = get_test_files(args.dataset)
 
     predictions = []
-    for test_file in test_files:
+    for test_file in tqdm.tqdm(test_files):
         # turn audio to features ready for model
-        features = extract_mel_features_single_file(test_file, args.dataset, args.clip_length, args.n_fft, args.n_mels,
-                                                    hop_length, win_length)
+        features = extract_mel_spectrograms([test_file], args.dataset_location, args.dataset, args.clip_length,
+                                                    args.n_fft, args.n_mels, hop_length, win_length)
 
         features = list(features.values())
 
@@ -409,7 +383,8 @@ if __name__ == "__main__":
 
         raw_prediction = torch.cat(raw_prediction, dim=0)
 
-        audio_duration = get_wav_duration(test_file)
+        test_file_path = args.dataset_location + args.dataset + '/' + test_file
+        audio_duration = librosa.get_duration(path=test_file_path)
 
         # turn output into appropriate labels with this format:
         prediction = get_prediction_from_raw_output(raw_prediction, id2cls, audio_duration, args.block_length,
@@ -420,4 +395,43 @@ if __name__ == "__main__":
     print("Saving predictions...")
     # save the predicted labels
     pred_df = pd.DataFrame(predictions, columns=['filename', 'onset', 'offset', 'event_label'])
-    pred_df.to_csv(f'{args.dataset}_semisupervised_results/test_predictions.tsv', sep='\t', index=False)
+    pred_df.to_csv(f'{args.dataset}_semisupervised_results/student_test_predictions.tsv', sep='\t', index=False)
+
+    teacher_model.load_state_dict(best_teacher_state)
+    teacher_model.eval()
+
+    print("\nCalculate predictions on test set for teacher model...")
+    # get predictions on test set
+    # get every test file
+    test_files = get_test_files(args.dataset)
+
+    predictions = []
+    for test_file in tqdm.tqdm(test_files):
+        # turn audio to features ready for model
+        features = extract_mel_spectrograms([test_file], args.dataset_location, args.dataset, args.clip_length,
+                                            args.n_fft, args.n_mels, hop_length, win_length)
+
+        features = list(features.values())
+
+        # pass features to model
+        raw_prediction = []
+        for feature in features:
+            feature = torch.from_numpy(feature).float().unsqueeze(0).to(device)
+            output = teacher_model(feature)
+            raw_prediction.append(output.squeeze())
+
+        raw_prediction = torch.cat(raw_prediction, dim=0)
+
+        test_file_path = args.dataset_location + args.dataset + '/' + test_file
+        audio_duration = librosa.get_duration(path=test_file_path)
+
+        # turn output into appropriate labels with this format:
+        prediction = get_prediction_from_raw_output(raw_prediction, id2cls, audio_duration, args.block_length,
+                                                    test_file, decision_threshold=args.decision_threshold)
+
+        predictions += prediction
+
+    print("Saving predictions...")
+    # save the predicted labels
+    pred_df = pd.DataFrame(predictions, columns=['filename', 'onset', 'offset', 'event_label'])
+    pred_df.to_csv(f'{args.dataset}_semisupervised_results/teacher_test_predictions.tsv', sep='\t', index=False)
