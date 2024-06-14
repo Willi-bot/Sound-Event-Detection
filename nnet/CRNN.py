@@ -162,7 +162,7 @@ class CRNN(nn.Module):
             strong = strong.masked_fill(classes_mask, 0.0)
             weak = weak.masked_fill(classes_mask[:, 0], 0.0)
 
-        return strong.transpose(1, 2), weak
+        return strong, weak
 
     def _get_logits(self, x, pad_mask, classes_mask=None):
         out_strong = []
