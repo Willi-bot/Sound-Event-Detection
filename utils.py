@@ -17,6 +17,15 @@ dataset_ratio = {
     'desed_2022': torch.tensor(50.)
 }
 
+metadata2filepath = {
+    'dataset/desed_2022/metadata/train/audioset_strong.tsv': 'audio/train/strong_label_real_16k/',
+    'dataset/desed_2022/metadata/train/synthetic21_train/soundscapes.tsv': 'audio/train/synthetic21_train/soundscapes_16k/',
+    'dataset/desed_2022/metadata/Ground-truth/mapped_ground_truth_eval.tsv': 'audio/eval21_16k/',
+    'dataset/desed_2022/metadata/validation/eval_dcase2018.tsv': 'audio/validation/',
+    'dataset/desed_2022/metadata/validation/validation.tsv': 'audio/validation/validation_16k/',
+    'dataset/desed_2022/metadata/validation/synthetic21_validation/soundscapes.tsv': 'audio/validation/synthetic21_validation/soundscapes_16k/'
+}
+
 
 def get_classes(dataset, dataset_location):
     if dataset == 'TUT':
@@ -34,27 +43,6 @@ def get_classes(dataset, dataset_location):
     return classes
 
 
-def get_binary_event_labels(dataset, clip_length, block_length, cls2id, dataset_location):
-    if dataset == 'TUT':
-        dataset_dir = dataset_location + dataset
-        labels = get_tut_labels(dataset_dir, clip_length, block_length, cls2id)
-    elif dataset == 'desed_2022':
-        metadata_path = dataset_location + dataset + '/metadata/'
-        labels = get_desed_labels(metadata_path, clip_length, block_length, cls2id)
-    else:
-        labels = None
-
-    return labels
-
-
-def get_wav_duration(file_path):
-    with wave.open(file_path, 'rb') as wav_file:
-        num_frames = wav_file.getnframes()
-        frame_rate = wav_file.getframerate()
-        duration = num_frames / float(frame_rate)
-        return duration
-
-
 def binarize_labels(labels, num_classes):
     bl = np.zeros(num_classes)
     bl[labels] = 1
@@ -62,74 +50,71 @@ def binarize_labels(labels, num_classes):
     return bl
 
 
-def get_splits(dataset, dataset_location, fold=None):
+def get_splits(dataset, dataset_location, fold=None, use_weak=False, use_unlabelled=False):
+    dataset_dir = dataset_location + dataset
+
     if dataset == 'TUT':
-        dataset_dir = dataset_location + dataset
         split_pattern = dataset_dir + f'/evaluation_setup/street_fold{fold}_'
         splits = []
+        meta_file = []
         for split in ['train', 'evaluate', 'test']:
             content = pd.read_csv(split_pattern + split + '.txt', sep='\t',
                                   names=['file', 'location', 'onset', 'offset', 'event'], header=None)
             splits.append(content)
+            meta_file.append(split_pattern + split + '.txt')
         train_set, dev_set, test_set = splits
-        train_files = train_set['file'].unique().tolist()
-        dev_files = dev_set['file'].unique().tolist()
-        test_files = test_set['file'].unique().tolist()
+        train_files, dev_files, test_files = (train_set['file'].unique().tolist(), dev_set['file'].unique().tolist(),
+                                              test_set['file'].unique().tolist())
+        train_files = [filename for filename in train_files]
+        dev_files = [filename for filename in dev_files]
+        test_files = [filename for filename in test_files]
+        train_labels, dev_labels, test_labels = meta_file
+        test_labels = dev_labels
     elif dataset == 'desed_2022':
-        train_files, dev_files, test_files = 'train', 'validation', 'eval21_16k'
+        train_files, dev_files, test_files = [], [], []
+        train_labels, dev_labels, test_labels = [], [], []
+
+        # for train
+        # get strong real
+        train_files += glob.glob(dataset_dir + '/audio/train/strong_label_real_16k/*.wav')
+        train_labels.append(dataset_dir + '/metadata/train/audioset_strong.tsv')
+
+        # get strong synthetic
+        train_files += glob.glob(dataset_dir + '/audio/train/synthetic21_train/soundscapes_16k/*.wav')
+        train_labels.append(dataset_dir + '/metadata/train/synthetic21_train/soundscapes.tsv')
+        train_files = [file.replace(dataset_dir + '/', '', 1) for file in train_files]
+
+        # get weak
+        if use_weak:
+            pass
+
+        # get unlabelled
+        if use_unlabelled:
+            pass
+
+        # for dev
+        # get strong real
+        # dev_files += glob.glob(dataset_dir + '/audio/validation/*.wav')
+        # dev_labels.append(dataset_dir + '/metadata/validation/eval_dcase2018.tsv')
+
+        dev_files += glob.glob(dataset_dir + '/audio/validation/validation_16k/*.wav')
+        dev_labels.append(dataset_dir + '/metadata/validation/validation.tsv')
+
+        # get strong synthetic
+        dev_files += glob.glob(dataset_dir + '/audio/validation/synthetic21_validation/soundscapes_16k/*.wav')
+        dev_labels.append(dataset_dir + '/metadata/validation/synthetic21_validation/soundscapes.tsv')
+        dev_files = [file.replace(dataset_dir + '/', '', 1) for file in dev_files]
+
+        # for test
+        # get strong real
+        test_files += glob.glob(dataset_dir + '/audio/eval21_16k/*.wav')
+        test_labels.append(dataset_dir + '/metadata/Ground-truth/mapped_ground_truth_eval.tsv')
+        test_files = [file.replace(dataset_dir + '/', '', 1) for file in test_files]
     else:
         train_files, dev_files, test_files = [], [], []
+        train_labels, dev_labels, test_labels = [], [], []
 
-    return train_files, dev_files, test_files
-
-
-def get_split_data(split, features=None, labels=None, dataset=None):
-
-    if dataset == 'TUT':
-        split_features = []
-        split_labels = []
-
-        for data_point in split:
-            for key in features:
-                if data_point == key[1]:
-                    split_features.append(features[key])
-                    split_labels.append(labels[key])
-    elif dataset == 'desed_2022':
-        split_features = []
-        split_labels = []
-
-        for key in features.keys():
-            if split in key:
-                split_features.append(features[key])
-                split_labels.append(labels[key])
-    else:
-        split_features = None
-        split_labels = None
-
-    return split_features, split_labels
-
-
-def normalize_features(feature_dict, mean=None, std=None):
-    # Convert the feature dictionary to a numpy array
-    features = np.array(list(feature_dict.values()))
-
-    if mean is None and std is None:
-        # Calculate mean and standard deviation across all samples
-        mean = np.mean(features, axis=(1, 2), keepdims=True)
-        std = np.std(features, axis=(1, 2), keepdims=True)
-
-    # Normalize each feature
-    normalized_features = {}
-    for key, value in feature_dict.items():
-        normalized_features[key] = (value - mean) / std
-
-    return normalized_features, mean, std
-
-
-def get_file_names(file_directory):
-    filenames = glob.glob(file_directory + '/*.wav')
-
-    return filenames
+    return (train_files, train_labels), (dev_files, dev_labels), (test_files, test_labels)
 
 
 def get_binary_labels(metadata_files, dataset, clip_length, block_length, cls2id):
@@ -142,8 +127,8 @@ def get_binary_labels(metadata_files, dataset, clip_length, block_length, cls2id
 
         if dataset == 'TUT':
             metadata = pd.read_csv(metadata_file, sep='\t',
-                               names=['onset', 'offset', 'event'], header=None)
-            filenames = list(metadata_file.split('/')[-1].replace('.ann', '.wav'))
+                               names=['filename', 'location', 'onset', 'offset', 'event'], header=None)
+            filenames = metadata['filename'].unique().tolist()
             event_keys = ['onset', 'offset', 'event']
         elif dataset == 'desed_2022':
             metadata = pd.read_csv(metadata_file, sep='\t')
@@ -156,15 +141,18 @@ def get_binary_labels(metadata_files, dataset, clip_length, block_length, cls2id
 
         for filename in tqdm(filenames):
             if dataset == 'TUT':
-                audio_path = 'dataset/TUT/audio/street/' + filename
+                audio_path = 'dataset/TUT/' + filename
                 audio_length = librosa.get_duration(path=audio_path)
-                file_metadata = metadata
+                file_metadata = metadata.loc[metadata['filename'] == filename]
+                file_path = filename
             elif dataset == 'desed_2022':
                 audio_length = 10.
                 file_metadata = metadata.loc[metadata['filename'] == filename]
+                file_path = metadata2filepath[metadata_file] + filename
             else:
                 audio_length = 0.
                 file_metadata = None
+                file_path = None
 
             for i in range(int(np.ceil(audio_length / clip_length))):
                 onset_clip = i * clip_length
@@ -172,7 +160,7 @@ def get_binary_labels(metadata_files, dataset, clip_length, block_length, cls2id
                 clip_events = get_clip_events(file_metadata, clip_length, block_length, event_keys,
                                               cls2id, onset_clip=onset_clip)
 
-                labels[(i, filename)] = np.stack(clip_events)
+                labels[(i, file_path)] = np.stack(clip_events)
                 all_events += clip_events.copy()
 
     return labels
@@ -192,54 +180,6 @@ def get_weak_labels(metadata_files, dataset, cls2id):
             binary_events = binarize_labels(events, num_classes)
 
             labels[(0, row['filename'])] = binary_events
-
-    return labels
-
-
-
-def get_tut_labels(dataset_dir, clip_length, block_length, cls2id):
-    audio_file_paths = glob.glob(os.path.join(dataset_dir, "audio/street/*.wav"))
-    metadata_file_paths = glob.glob(os.path.join(dataset_dir, "meta/street/*.ann"))
-
-
-    clip_length = 0.001 * clip_length  # ms to s
-    block_length = 0.001 * block_length  # ms to s
-
-    all_events = []
-    labels = {}
-    for audio_file_path, metadata_file_path in zip(audio_file_paths, metadata_file_paths):
-        audio_file_path = audio_file_path.replace("\\", "/")
-        file_name = "/".join(audio_file_path.split('/')[-3:])
-
-        metadata = pd.read_csv(metadata_file_path, sep='\t',
-                               names=['onset', 'offset', 'event'], header=None)
-
-        audio_length = get_wav_duration(audio_file_path)
-        for i in range(int(audio_length // clip_length) + 1):
-            onset_clip = i * clip_length
-
-            clip_events = get_clip_events(metadata, clip_length, block_length, ['onset', 'offset', 'event'],
-                                          cls2id, onset_clip=onset_clip)
-
-            labels[(i, file_name)] = np.stack(clip_events)
-            all_events += clip_events.copy()
-
-    return labels
-
-
-def get_desed_labels(metadata_path, clip_length, block_length, cls2id):
-    tsv_paths = ['train/audioset_strong.tsv', 'train/synthetic21_train/soundscapes.tsv', 'validation/validation.tsv', 'validation/synthetic21_validation/soundscapes.tsv']
-
-    labels = {}
-    for path in tsv_paths:
-        metadata = pd.read_csv(os.path.join(metadata_path, path), sep='\t')
-
-        for file_name in metadata['filename'].unique().tolist():
-            clip_events = get_clip_events(metadata.loc[metadata['filename'] == file_name], clip_length, block_length,
-                                          ['onset', 'offset', 'event_label'], cls2id)
-
-            key = ('train' if 'train' in path else 'validation') + ('/synthetic/' if 'synthetic' in path else '/strong/') + file_name
-            labels[key] = np.array(clip_events)
 
     return labels
 
@@ -283,26 +223,40 @@ def get_test_files(dataset, fold=None):
     elif dataset == 'desed_2022':
         file_path = f'dataset/desed_2022/audio/eval21_16k/*.wav'
         test_files = glob.glob(file_path)
+        test_files = [file.replace('dataset/desed_2022/', '') for file in test_files]
     else:
         test_files = None
 
     return test_files
 
 
-def get_labels(name, dataset_location, dataset, clip_length, block_length, cls2id, metadata_location, weak=False):
+def get_labels(name, dataset_location, dataset, clip_length, block_length, cls2id, metadata_location=None, metadata_files=None, weak=False):
     file_path = dataset_location + '/' + dataset + '/' + name + f'_{clip_length}_{block_length}.npy'
 
     if os.path.isfile(file_path):
         print('loading labels from ' + file_path + "...")
         labels = np.load(file_path, allow_pickle=True).item()
     else:
-        labels_file = dataset_location + '/' + dataset + '/' + metadata_location
-        print('extracting labels from ' + labels_file + "...")
-        if not weak:
-            labels = get_binary_labels([labels_file], dataset, clip_length, block_length, cls2id)
+        if metadata_location is not None:
+            label_file = dataset_location + '/' + dataset + '/' + metadata_location
+            print('extracting labels from ' + label_file + "...")
+            label_files = [label_file]
+        elif metadata_files is not None:
+            print('extracting labels from given metadata_files...')
+            if type(metadata_files) is str:
+                label_files = [metadata_files]
+            else:
+                label_files = metadata_files
         else:
-            labels = get_weak_labels([labels_file], dataset, cls2id)
-        print("saving features...")
+            label_files = None
+            # TODO
+
+        if not weak:
+            labels = get_binary_labels(label_files, dataset, clip_length, block_length, cls2id)
+        else:
+            labels = get_weak_labels(label_files, dataset, cls2id)
+
+        print("saving labels...")
         np.save(file_path, labels)
 
     return labels
