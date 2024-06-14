@@ -10,7 +10,7 @@ class AudioClipDataset(Dataset):
 
         if use_specaug:
             self.spec_aug = torch.nn.Sequential(
-                TimeStretch(0.8, fixed_rate=True),
+                # TimeStretch(0.8, fixed_rate=True),
                 FrequencyMasking(freq_mask_param=80),
                 TimeMasking(time_mask_param=80),
             )
@@ -30,7 +30,14 @@ class AudioClipDataset(Dataset):
 
 
 def get_dataloader(features, labels, batch_size, shuffle=False, drop_last=False, use_specaug=False):
-    dataset = AudioClipDataset(features, labels, use_specaug=use_specaug)
+    # turn dict to list
+    features_list, labels_list = [], []
+    for key in features.keys():
+        if key in labels.keys():
+            features_list.append(features[key])
+            labels_list.append(labels[key])
+
+    dataset = AudioClipDataset(features_list, labels_list, use_specaug=use_specaug)
 
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, drop_last=drop_last)
 
