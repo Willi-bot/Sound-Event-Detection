@@ -211,7 +211,6 @@ if __name__ == "__main__":
     strong_loss_fn = torch.nn.BCEWithLogitsLoss()
     weak_loss_fn = torch.nn.BCEWithLogitsLoss()
 
-
     student_model = AdvancedRCNN(num_classes, args.dropout).to(device)
     config['model'] = {'name': "AdvancedRCNN"}
     optimizer = torch.optim.Adam(student_model.parameters(), lr=args.learning_rate, weight_decay=1e-4)
@@ -319,10 +318,7 @@ if __name__ == "__main__":
                 id2cls
             )
             unlabelled_f1 = teacher_results['f1']
-            if unlabelled_f1 > args.unlabelled_threshold:
-                delta = 1.
-            else:
-                delta = 0.
+            delta = unlabelled_f1
 
         if (step % args.val_step) == 0:
             student_model.eval()

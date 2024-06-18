@@ -9,18 +9,6 @@ sampling_rates = {
     'desed_2022': 16000
 }
 
-audio_file_dirs = {
-    'TUT': "dataset/TUT/audio/street/*.wav",
-    'desed_2022': "dataset/desed_2022/audio/**/*.wav"
-}
-
-desed_audiofolder2type = {
-    'strong_label_real_16k': 'strong',
-    'synthetic21_train/soundscapes_16k': 'synthetic',
-    'synthetic21_validation/soundscapes_16k': 'synthetic',
-    'validation_16k': 'strong'
-}
-
 
 def extract_mel_spectrograms(audio_files, dataset_location, dataset, clip_length, n_fft, n_mels, hop_length, win_length):
     sampling_rate = sampling_rates[dataset]
@@ -53,9 +41,9 @@ def extract_mel_spectrograms(audio_files, dataset_location, dataset, clip_length
     return features
 
 
-def get_features(name, dataset_location, dataset, clip_length, n_fft, n_mels, hop_length, win_length, audio_file_folder=None, audio_files=None):
-    file_name = name + f'_{clip_length}_{n_fft}_{n_mels}_{hop_length}_{win_length}.npy'
-    file_path = dataset_location + '/' + dataset + '/' + file_name
+def get_features(name, dataset_location, dataset, fold, clip_length, n_fft, n_mels, hop_length, win_length, audio_file_folder=None, audio_files=None):
+    file_name = name + f'_{fold}_{clip_length}_{n_fft}_{n_mels}_{hop_length}_{win_length}.npy'
+    file_path = dataset_location + dataset + '/' + file_name
 
     if os.path.isfile(file_path):
         print('loading features from ' + file_path + "...")

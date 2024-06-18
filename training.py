@@ -115,10 +115,6 @@ if __name__ == "__main__":
         choices=['Basic', 'Advanced', 'Baseline'],
         required=True
     )
-    parser.add_argument(
-        '--use-smote',
-        action='store_true'
-    )
     args = parser.parse_args()
 
     config = vars(args)
@@ -150,19 +146,19 @@ if __name__ == "__main__":
     # round up, because we keep last frame that might not be complete
     num_features_frames = np.ceil(float(win_length) / hop_length)
 
-    train_features = get_features("features/train", args.dataset_location, args.dataset, args.clip_length, args.n_fft, args.n_mels, hop_length,
+    train_features = get_features("features/train", args.dataset_location, args.dataset, args.fold, args.clip_length, args.n_fft, args.n_mels, hop_length,
                             win_length, audio_files=train_audio_files)
-    train_labels = get_labels('labels/train', args.dataset_location, args.dataset, args.clip_length,
+    train_labels = get_labels('labels/train', args.dataset_location, args.dataset, args.fold, args.clip_length,
                         args.block_length, cls2id, metadata_files=train_label_files)
 
-    dev_features = get_features("features/dev", args.dataset_location, args.dataset, args.clip_length, args.n_fft, args.n_mels, hop_length,
+    dev_features = get_features("features/dev", args.dataset_location, args.dataset, args.fold, args.clip_length, args.n_fft, args.n_mels, hop_length,
                             win_length, audio_files=dev_audio_files)
-    dev_labels = get_labels('labels/dev', args.dataset_location, args.dataset, args.clip_length,
+    dev_labels = get_labels('labels/dev', args.dataset_location, args.dataset, args.fold, args.clip_length,
                         args.block_length, cls2id, metadata_files=dev_label_files)
 
-    test_features = get_features("features/test", args.dataset_location, args.dataset, args.clip_length, args.n_fft, args.n_mels, hop_length,
+    test_features = get_features("features/test", args.dataset_location, args.dataset, args.fold, args.clip_length, args.n_fft, args.n_mels, hop_length,
                             win_length, audio_files=test_audio_files)
-    test_labels = get_labels('labels/test', args.dataset_location, args.dataset, args.clip_length,
+    test_labels = get_labels('labels/test', args.dataset_location, args.dataset, args.fold, args.clip_length,
                         args.block_length, cls2id, metadata_files=test_label_files)
 
     train_loader = get_dataloader(train_features, train_labels, batch_size=args.batch_size, shuffle=True, drop_last=True, use_specaug=args.use_specaug)
@@ -217,9 +213,9 @@ if __name__ == "__main__":
     for epoch in range(1, args.epochs + 1):
 
         # check if model was already trained and load it in that case
-        if os.path.exists(f'{args.dataset}_results/weights.pth'):
+        if os.path.exists(f'{args.dataset}_results/weights_{args.fold}.pth'):
             print("Model was already trained. Load best state and skip to evaluation")
-            best_state = torch.load(f'{args.dataset}_results/weights.pth')
+            best_state = torch.load(f'{args.dataset}_results/weights_{args.fold}.pth')
             already_trained = True
             break
 
@@ -240,7 +236,6 @@ if __name__ == "__main__":
             loss.backward()
             optimizer.step()
 
-        print(loss)
         model.eval()
         dev_results, dev_class_results = evaluate(
             model,
@@ -274,7 +269,7 @@ if __name__ == "__main__":
             yaml.dump(best_class_results, f)
 
         torch.save(best_state, os.path.join(
-                result_dir, "weights.pth"))
+                result_dir, f"weights_{args.fold}.pth"))
 
     model.load_state_dict(best_state)
     model.eval()
@@ -293,7 +288,7 @@ if __name__ == "__main__":
     print("\nCalculate predictions on test set...")
     # get predictions on test set
     # get every test file
-    test_files = get_test_files(args.dataset, fold=args.fold)
+    test_files = get_test_files(args.dataset_location, args.dataset, fold=args.fold)
 
     predictions = []
     for test_file in tqdm.tqdm(test_files):

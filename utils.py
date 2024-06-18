@@ -18,12 +18,12 @@ dataset_ratio = {
 }
 
 metadata2filepath = {
-    'dataset/desed_2022/metadata/train/audioset_strong.tsv': 'audio/train/strong_label_real_16k/',
-    'dataset/desed_2022/metadata/train/synthetic21_train/soundscapes.tsv': 'audio/train/synthetic21_train/soundscapes_16k/',
-    'dataset/desed_2022/metadata/Ground-truth/mapped_ground_truth_eval.tsv': 'audio/eval21_16k/',
-    'dataset/desed_2022/metadata/validation/eval_dcase2018.tsv': 'audio/validation/',
-    'dataset/desed_2022/metadata/validation/validation.tsv': 'audio/validation/validation_16k/',
-    'dataset/desed_2022/metadata/validation/synthetic21_validation/soundscapes.tsv': 'audio/validation/synthetic21_validation/soundscapes_16k/'
+    'metadata/train/audioset_strong.tsv': 'audio/train/strong_label_real_16k/',
+    'metadata/train/synthetic21_train/soundscapes.tsv': 'audio/train/synthetic21_train/soundscapes_16k/',
+    'metadata/Ground-truth/mapped_ground_truth_eval.tsv': 'audio/eval21_16k/',
+    'metadata/validation/eval_dcase2018.tsv': 'audio/validation/',
+    'metadata/validation/validation.tsv': 'audio/validation/validation_16k/',
+    'metadata/validation/synthetic21_validation/soundscapes.tsv': 'audio/validation/synthetic21_validation/soundscapes_16k/'
 }
 
 
@@ -117,7 +117,7 @@ def get_splits(dataset, dataset_location, fold=None, use_weak=False, use_unlabel
     return (train_files, train_labels), (dev_files, dev_labels), (test_files, test_labels)
 
 
-def get_binary_labels(metadata_files, dataset, clip_length, block_length, cls2id):
+def get_binary_labels(metadata_files, dataset_location, dataset, clip_length, block_length, cls2id):
     clip_length = 0.001 * clip_length  # ms to s
     block_length = 0.001 * block_length  # ms to s
 
@@ -141,14 +141,15 @@ def get_binary_labels(metadata_files, dataset, clip_length, block_length, cls2id
 
         for filename in tqdm(filenames):
             if dataset == 'TUT':
-                audio_path = 'dataset/TUT/' + filename
+                audio_path = dataset_location + dataset + '/' + filename
                 audio_length = librosa.get_duration(path=audio_path)
                 file_metadata = metadata.loc[metadata['filename'] == filename]
                 file_path = filename
             elif dataset == 'desed_2022':
                 audio_length = 10.
                 file_metadata = metadata.loc[metadata['filename'] == filename]
-                file_path = metadata2filepath[metadata_file] + filename
+                file_path = metadata_file[metadata_file.find('metadata'):]
+                file_path = metadata2filepath[file_path] + filename
             else:
                 audio_length = 0.
                 file_metadata = None
@@ -213,25 +214,24 @@ def get_clip_events(metadata, clip_length, block_length, columns, cls2id, onset_
     return clip_events
 
 
-def get_test_files(dataset, fold=None):
+def get_test_files(dataset_location, dataset, fold=None):
     if dataset == 'TUT':
         assert fold is not None
-        file_path = f'dataset/TUT/evaluation_setup/street_fold{fold}_test.txt'
+        file_path = dataset_location + f'TUT/evaluation_setup/street_fold{fold}_test.txt'
         test_df = pd.read_csv(file_path, sep='\t', names=['filename', 'scene'], header=None)
         test_files = test_df['filename'].tolist()
-        test_files = ['dataset/TUT/' + test_file for test_file in test_files]
     elif dataset == 'desed_2022':
-        file_path = f'dataset/desed_2022/audio/eval21_16k/*.wav'
+        file_path = dataset_location + f'desed_2022/audio/eval21_16k/*.wav'
         test_files = glob.glob(file_path)
-        test_files = [file.replace('dataset/desed_2022/', '') for file in test_files]
+        test_files = [file.replace(dataset_location + 'desed_2022/', '') for file in test_files]
     else:
         test_files = None
 
     return test_files
 
 
-def get_labels(name, dataset_location, dataset, clip_length, block_length, cls2id, metadata_location=None, metadata_files=None, weak=False):
-    file_path = dataset_location + '/' + dataset + '/' + name + f'_{clip_length}_{block_length}.npy'
+def get_labels(name, dataset_location, dataset, fold, clip_length, block_length, cls2id, metadata_location=None, metadata_files=None, weak=False):
+    file_path = dataset_location + '/' + dataset + '/' + name + f'_{fold}_{clip_length}_{block_length}.npy'
 
     if os.path.isfile(file_path):
         print('loading labels from ' + file_path + "...")
@@ -252,7 +252,7 @@ def get_labels(name, dataset_location, dataset, clip_length, block_length, cls2i
             # TODO
 
         if not weak:
-            labels = get_binary_labels(label_files, dataset, clip_length, block_length, cls2id)
+            labels = get_binary_labels(label_files, dataset_location, dataset, clip_length, block_length, cls2id)
         else:
             labels = get_weak_labels(label_files, dataset, cls2id)
 
