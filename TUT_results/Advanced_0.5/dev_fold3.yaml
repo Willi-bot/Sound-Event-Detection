@@ -1,0 +1,29 @@
+Epoch: 76
+accuracy: 0.8858382352941176
+f1: 0.4093733357003373
+precision: 0.5073866851071855
+recall: 0.3430964121748002
+brakes squeaking:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+car:
+  f1: 0.6495516521311878
+  precision: 0.5122045718713677
+  recall: 0.8875461564283317
+children:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+large vehicle:
+  f1: 0.04012806830309498
+  precision: 0.831858407079646
+  recall: 0.020559930008748905
+people speaking:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+people walking:
+  f1: 0.016216216216216217
+  precision: 0.30405405405405406
+  recall: 0.008330248056275453

@@ -4,18 +4,18 @@ clip_length: 10000
 dataset: TUT
 dataset_location: dataset/
 decision_threshold: 0.5
-dropout: 0.2
-early_stopping: 20
-epochs: 5
-fold: 2
+dropout: 0.5
+early_stopping: 40
+epochs: 400
+fold: 1
 learning_rate: 0.0005
 model:
-  name: Baseline
+  name: Advanced
 n_fft: 2048
-n_mels: 128
+n_mels: 40
 normalize: false
 optimizer: Adam
 overlap: 0.5
 seed: 42
-use_specaug: false
-use_weights: true
+use_specaug: true
+use_weights: false

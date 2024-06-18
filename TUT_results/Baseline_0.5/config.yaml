@@ -6,8 +6,8 @@ dataset_location: dataset/
 decision_threshold: 0.5
 dropout: 0.5
 early_stopping: 20
-epochs: 200
-fold: 3
+epochs: 400
+fold: 4
 learning_rate: 0.0005
 model:
   name: Baseline

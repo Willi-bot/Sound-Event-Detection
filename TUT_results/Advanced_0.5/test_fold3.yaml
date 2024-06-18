@@ -1,0 +1,28 @@
+accuracy: 0.8858382352941176
+f1: 0.4090136270205801
+precision: 0.5073978467543915
+recall: 0.342586294847815
+brakes squeaking:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+car:
+  f1: 0.6491803278688525
+  precision: 0.5121903899631378
+  recall: 0.8862034239677744
+children:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+large vehicle:
+  f1: 0.04013663535439795
+  precision: 0.8392857142857143
+  recall: 0.020559930008748905
+people speaking:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+people walking:
+  f1: 0.016216216216216217
+  precision: 0.30405405405405406
+  recall: 0.008330248056275453
