@@ -142,21 +142,21 @@ if __name__ == "__main__":
     num_features_frames = np.ceil(float(win_length) / hop_length)
 
     # get strong features and labels
-    print("\nGet features and labels of real strongly annotated data...")
-    strong_train_features = get_features("features/strong_train", args.dataset_location, args.dataset,
-                                         args.clip_length, args.n_fft, args.n_mels, hop_length, win_length,
-                                         'audio/train/strong_label_real_16k/*.wav')
-
-    strong_train_labels = get_labels('labels/strong_train', args.dataset_location, args.dataset, args.clip_length,
-                        args.block_length, cls2id, 'metadata/train/audioset_strong.tsv')
+    # print("\nGet features and labels of real strongly annotated data...")
+    # strong_train_features = get_features("features/strong_train", args.dataset_location, args.dataset,
+    #                                      args.clip_length, args.n_fft, args.n_mels, hop_length, win_length,
+    #                                      'audio/train/strong_label_real_16k/*.wav')
+    #
+    # strong_train_labels = get_labels('labels/strong_train', args.dataset_location, args.dataset, args.clip_length,
+    #                     args.block_length, cls2id, 'metadata/train/audioset_strong.tsv')
 
     # get strong synthetic features and labels
     print("\nGet features and labels of synthetic strongly annotated data...")
-    strong_train_features = strong_train_features | get_features("features/synthetic_train", args.dataset_location, args.dataset,
+    strong_train_features = get_features("features/synthetic_train", args.dataset_location, args.dataset, 1,
                                          args.clip_length, args.n_fft, args.n_mels, hop_length, win_length,
-                                         'audio/train/synthetic21_train/soundscapes/*.wav')
+                                         'audio/train/synthetic21_train/soundscapes_16k/*.wav')
 
-    strong_train_labels = strong_train_labels | get_labels('labels/synthetic_train', args.dataset_location, args.dataset, args.clip_length,
+    strong_train_labels = get_labels('labels/synthetic_train', args.dataset_location, args.dataset, 1, args.clip_length,
                         args.block_length, cls2id, 'metadata/train/synthetic21_train/soundscapes.tsv')
 
     strong_train_dataloader = get_dataloader(strong_train_features, strong_train_labels, args.batch_size, shuffle=True, drop_last=True,
@@ -164,10 +164,10 @@ if __name__ == "__main__":
 
     # get weakly annotated
     print("\nGet features and labels of real weakly annotated data...")
-    weak_train_features = get_features("features/weak_train", args.dataset_location, args.dataset,
+    weak_train_features = get_features("features/weak_train", args.dataset_location, args.dataset, 1,
                                          args.clip_length, args.n_fft, args.n_mels, hop_length, win_length,
                                        "audio/train/weak_16k/*.wav")
-    weak_train_labels = get_labels('labels/weak_train', args.dataset_location, args.dataset, args.clip_length,
+    weak_train_labels = get_labels('labels/weak_train', args.dataset_location, args.dataset, 1, args.clip_length,
                         args.block_length, cls2id, 'metadata/train/weak.tsv', weak=True)
 
     weak_train_dataloader = get_dataloader(weak_train_features, weak_train_labels, args.batch_size, shuffle=True, drop_last=True,
@@ -175,7 +175,7 @@ if __name__ == "__main__":
 
     # get unannotated data
     print("\nGet features of unannotated data...")
-    unlabelled_train_features = get_features("features/unlabbelled_train", args.dataset_location, args.dataset,
+    unlabelled_train_features = get_features("features/unlabbelled_train", args.dataset_location, args.dataset, 1,
                                              args.clip_length, args.n_fft, args.n_mels, hop_length, win_length,
                                              "audio/train/unlabel_in_domain_16k/*.wav")
 
@@ -184,23 +184,23 @@ if __name__ == "__main__":
 
     # get validation data
     print("\nGet features and labels of validation data...")
-    strong_eval_features = get_features("features/strong_eval", args.dataset_location, args.dataset,
+    strong_eval_features = get_features("features/strong_eval", args.dataset_location, args.dataset, 1,
                                              args.clip_length, args.n_fft, args.n_mels, hop_length, win_length,
                                         "audio/validation/validation_16k/*.wav")
-    strong_eval_labels = get_labels("labels/strong_eval", args.dataset_location, args.dataset, args.clip_length,
+    strong_eval_labels = get_labels("labels/strong_eval", args.dataset_location, args.dataset, 1, args.clip_length,
                                     args.block_length, cls2id, "metadata/validation/validation.tsv")
 
-    strong_eval_features = strong_eval_features | get_features("features/strong_eval_2018", args.dataset_location, args.dataset,
+    strong_eval_features = strong_eval_features | get_features("features/strong_eval_2018", args.dataset_location, args.dataset, 1,
                                              args.clip_length, args.n_fft, args.n_mels, hop_length, win_length,
                                          "audio/validation/*.wav")
-    strong_eval_labels = strong_eval_labels | get_labels("labels/strong_eval_2018", args.dataset_location, args.dataset,
+    strong_eval_labels = strong_eval_labels | get_labels("labels/strong_eval_2018", args.dataset_location, args.dataset, 1,
                                      args.clip_length, args.block_length, cls2id,
                                      "metadata/validation/eval_dcase2018.tsv")
 
-    strong_eval_features = strong_eval_features | get_features("features/synthetic_eval", args.dataset_location, args.dataset,
+    strong_eval_features = strong_eval_features | get_features("features/synthetic_eval", args.dataset_location, args.dataset, 1,
                                          args.clip_length, args.n_fft, args.n_mels, hop_length, win_length,
                                          "audio/validation/synthetic21_validation/soundscapes_16k/*.wav")
-    strong_eval_labels = strong_eval_labels | get_labels("labels/synthetic_eval", args.dataset_location, args.dataset,
+    strong_eval_labels = strong_eval_labels | get_labels("labels/synthetic_eval", args.dataset_location, args.dataset, 1,
                                      args.clip_length, args.block_length, cls2id,
                                      "metadata/validation/synthetic21_validation/soundscapes.tsv")
 
@@ -399,7 +399,7 @@ if __name__ == "__main__":
     print("\nCalculate predictions on test set for teacher model...")
     # get predictions on test set
     # get every test file
-    test_files = get_test_files(args.dataset)
+    test_files = get_test_files(args.dataset_location, args.dataset)
 
     predictions = []
     for test_file in tqdm.tqdm(test_files):
