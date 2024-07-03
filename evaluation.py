@@ -30,7 +30,10 @@ def evaluate(model, device, data_loader, id2cls, decision_threshold=0.5):
     f1s = f1_score(y, y_hat, average=None).tolist()
     precisions = precision_score(y, y_hat, average=None).tolist()
     recalls = recall_score(y, y_hat, average=None).tolist()
-    class_results = {cls: {'f1': f1s[id], 'precision': precisions[id], 'recall': recalls[id]} for id, cls in id2cls.items()}
+    if num_classes == 1:
+        class_results = {list(id2cls.values())[0]: {'f1': f1s[1], 'precision': precisions[1], 'recall': recalls[1]}}
+    else:
+        class_results = {cls: {'f1': f1s[id], 'precision': precisions[id], 'recall': recalls[id]} for id, cls in id2cls.items()}
 
     y = y.flatten()
     y_hat = y_hat.flatten()
@@ -53,6 +56,8 @@ def get_prediction_from_raw_output(raw_prediction, id2cls, audio_duration, block
 
     found_events = []
     for idx, cls in id2cls.items():
+        if len(raw_prediction.shape) == 1:
+            raw_prediction = torch.unsqueeze(raw_prediction, 1)
         cls_slice = raw_prediction[:cutoff, idx].detach().clone()
 
         array = cls_slice.numpy()
