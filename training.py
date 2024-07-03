@@ -26,7 +26,7 @@ if __name__ == "__main__":
         "--dataset",
         help="name of the dataset to use",
         default='TUT',
-        choices=['TUT', 'desed_2022']
+        choices=['TUT', 'desed_2022', 'bird_dataset']
     )
     parser.add_argument(
         "--fold",

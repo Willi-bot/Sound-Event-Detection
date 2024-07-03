@@ -6,7 +6,8 @@ from tqdm import tqdm
 
 sampling_rates = {
     'TUT': 44100,
-    'desed_2022': 16000
+    'desed_2022': 16000,
+    'bird_dataset': 16000
 }
 
 
@@ -50,9 +51,10 @@ def get_features(name, dataset_location, dataset, fold, clip_length, n_fft, n_me
         features = np.load(file_path, allow_pickle=True).item()
     else:
         if audio_file_folder is not None:
-            audio_path = dataset_location + '/' + dataset + '/'+ audio_file_folder
+            audio_path = dataset_location + dataset + '/' + audio_file_folder
             print('extracting features from ' + audio_path + "...")
             audio_files = glob.glob(audio_path)
+            audio_files = [file.replace(dataset_location + dataset + '/', '') for file in audio_files]
         elif audio_files is not None:
             print('extracting features from given audio files...')
         else:

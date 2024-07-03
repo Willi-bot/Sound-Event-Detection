@@ -23,7 +23,8 @@ metadata2filepath = {
     'metadata/Ground-truth/mapped_ground_truth_eval.tsv': 'audio/eval21_16k/',
     'metadata/validation/eval_dcase2018.tsv': 'audio/validation/',
     'metadata/validation/validation.tsv': 'audio/validation/validation_16k/',
-    'metadata/validation/synthetic21_validation/soundscapes.tsv': 'audio/validation/synthetic21_validation/soundscapes_16k/'
+    'metadata/validation/synthetic21_validation/soundscapes.tsv': 'audio/validation/synthetic21_validation/soundscapes_16k/',
+    'metadata/train/weak.tsv': 'audio/train/weak_16k/'
 }
 
 
@@ -37,6 +38,8 @@ def get_classes(dataset, dataset_location):
         meta_data_path = dataset_location + dataset + '/metadata/train/audioset_strong.tsv'
         data = pd.read_csv(meta_data_path, sep='\t')
         classes = data['event_label'].unique().tolist()
+    elif dataset == 'bird_dataset':
+        classes = ['bird']
     else:
         classes = None
 
@@ -110,6 +113,18 @@ def get_splits(dataset, dataset_location, fold=None, use_weak=False, use_unlabel
         test_files += glob.glob(dataset_dir + '/audio/eval21_16k/*.wav')
         test_labels.append(dataset_dir + '/metadata/Ground-truth/mapped_ground_truth_eval.tsv')
         test_files = [file.replace(dataset_dir + '/', '', 1) for file in test_files]
+    elif dataset == 'bird_dataset':
+        with open(dataset_dir + '/splits/train.txt', 'r') as f:
+            train_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
+            train_labels = [dataset_location + dataset + '/' +  file.replace('audio', 'binary_metadata').replace('.wav', '.txt') for file in train_files]
+
+        with open(dataset_dir + '/splits/val.txt', 'r') as f:
+            dev_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
+            dev_labels = [dataset_location + dataset + '/' + file.replace('audio', 'binary_metadata').replace('.wav', '.txt') for file in dev_files]
+
+        with open(dataset_dir + '/splits/test.txt', 'r') as f:
+            test_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
+            test_labels = [dataset_location + dataset + '/' + file.replace('audio', 'binary_metadata').replace('.wav', '.txt') for file in test_files]
     else:
         train_files, dev_files, test_files = [], [], []
         train_labels, dev_labels, test_labels = [], [], []
@@ -123,7 +138,7 @@ def get_binary_labels(metadata_files, dataset_location, dataset, clip_length, bl
 
     all_events = []
     labels = {}
-    for metadata_file in metadata_files:
+    for metadata_file in tqdm(metadata_files, disable=(len(metadata_files) == 1)):
 
         if dataset == 'TUT':
             metadata = pd.read_csv(metadata_file, sep='\t',
@@ -134,12 +149,16 @@ def get_binary_labels(metadata_files, dataset_location, dataset, clip_length, bl
             metadata = pd.read_csv(metadata_file, sep='\t')
             filenames = metadata['filename'].unique().tolist()
             event_keys = ['onset', 'offset', 'event_label']
+        elif dataset == 'bird_dataset':
+            metadata = pd.read_csv(metadata_file, sep='\t', names=['onset', 'offset', 'event'], header=None)
+            filenames = ['soundscapes/audio/' + metadata_file.split('/')[-1]]
+            event_keys = ['onset', 'offset', 'event']
         else:
             metadata = None
             filenames = None
             event_keys = None
 
-        for filename in tqdm(filenames):
+        for filename in tqdm(filenames, disable=(len(filenames) == 1)):
             if dataset == 'TUT':
                 audio_path = dataset_location + dataset + '/' + filename
                 audio_length = librosa.get_duration(path=audio_path)
@@ -150,6 +169,10 @@ def get_binary_labels(metadata_files, dataset_location, dataset, clip_length, bl
                 file_metadata = metadata.loc[metadata['filename'] == filename]
                 file_path = metadata_file[metadata_file.find('metadata'):]
                 file_path = metadata2filepath[file_path] + filename
+            elif dataset == 'bird_dataset':
+                audio_length = 10.
+                file_metadata = metadata
+                file_path = filename.replace('.txt', '.wav')
             else:
                 audio_length = 0.
                 file_metadata = None
@@ -174,13 +197,16 @@ def get_weak_labels(metadata_files, dataset, cls2id):
     for metadata_file in metadata_files:
         metadata = pd.read_csv(metadata_file, sep='\t')
 
-        for i, row in metadata.iterrows():
+        for i, row in tqdm(metadata.iterrows()):
             events = row['event_labels'].split(',')
             events = [cls2id[cls] for cls in events]
+            file_name = row['filename']
+            file_path = metadata_file[metadata_file.find('metadata'):]
+            file_path = metadata2filepath[file_path] + file_name
 
             binary_events = binarize_labels(events, num_classes)
 
-            labels[(0, row['filename'])] = binary_events
+            labels[(0, file_path)] = binary_events
 
     return labels
 
@@ -224,6 +250,9 @@ def get_test_files(dataset_location, dataset, fold=None):
         file_path = dataset_location + f'desed_2022/audio/eval21_16k/*.wav'
         test_files = glob.glob(file_path)
         test_files = [file.replace(dataset_location + 'desed_2022/', '') for file in test_files]
+    elif dataset == 'bird_dataset':
+        with open(dataset_location + dataset + '/splits/test.txt', 'r') as f:
+            test_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
     else:
         test_files = None
 

@@ -15,7 +15,7 @@ def plot_class_percentages(class_length, total_length, label):
     plt.xlabel('Classes')
     plt.ylabel('Total length in seconds')
     plt.title(f'Total length distribution ({label})')
-    plt.xticks(rotation=45)
+    plt.xticks(rotation=90, fontsize='small')
     plt.subplots_adjust(bottom=0.2)
     plt.tight_layout()
     plt.savefig(f'plots/{label}_total.png')
@@ -26,7 +26,7 @@ def plot_class_percentages(class_length, total_length, label):
     plt.xlabel('Classes')
     plt.ylabel('Percentage')
     plt.title(f'Percentage Distribution ({label})')
-    plt.xticks(rotation=45)
+    plt.xticks(rotation=90, fontsize='small')
     plt.ylim(0, 1)
     plt.subplots_adjust(bottom=0.2)
     plt.tight_layout()
@@ -76,7 +76,7 @@ def get_class_lengths(audio_path, meta_path, dataset):
 
     class_length = {}
     for meta_file in meta_path:
-        if dataset == 'TUT':
+        if dataset == 'TUT' or dataset == 'Birds':
             metadata = pd.read_csv(meta_file, sep='\t',
                               names=['onset', 'offset', 'event'], header=None)
             onset_key = 'onset'
@@ -134,6 +134,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--tut", action='store_true')
     parser.add_argument("--desed", action='store_true')
+    parser.add_argument('--birds', action='store_true')
 
     args = parser.parse_args()
 
@@ -209,3 +210,22 @@ if __name__ == '__main__':
 
         with open(os.path.join("plots/Desed", f"Desed_stats.yaml"), "w") as fp:
             yaml.dump(Desed_data_dict, fp)
+
+    if args.birds:
+        bird_data_dict = {}
+
+        dataset_dir = "dataset/bird_dataset"
+        audio_path = glob.glob(os.path.join(dataset_dir, "soundscapes/audio/*.wav"))
+        bird_data_dict["Audio File Count"] = len(audio_path)
+        meta_path = glob.glob(os.path.join(dataset_dir, "soundscapes/metadata/*.txt"))
+        class_length, total_length = get_class_lengths(audio_path, meta_path, 'Birds')
+        bird_data_dict["Total length for each class (in s)"] = class_length
+        bird_data_dict["Total length of dataset (in s)"] = total_length
+        plot_class_percentages(class_length, total_length, "Synthetic Bird Data")
+
+        ratios = get_pos_neg_ratio(class_length, total_length)
+        bird_data_dict[
+            "Ratio \'Class not present\' to \'Class present\' (for every class over every audio file)"] = ratios
+
+        with open(os.path.join("plots/bird_dataset/", f"Bird_stats.yaml"), "w") as fp:
+            yaml.dump(bird_data_dict, fp)
