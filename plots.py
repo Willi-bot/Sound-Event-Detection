@@ -214,7 +214,7 @@ if __name__ == '__main__':
     if args.birds:
         bird_data_dict = {}
 
-        dataset_dir = "dataset/bird_dataset"
+        dataset_dir = "dataset/BirdSED"
         audio_path = glob.glob(os.path.join(dataset_dir, "soundscapes/audio/*.wav"))
         bird_data_dict["Audio File Count"] = len(audio_path)
         meta_path = glob.glob(os.path.join(dataset_dir, "soundscapes/metadata/*.txt"))
@@ -227,5 +227,5 @@ if __name__ == '__main__':
         bird_data_dict[
             "Ratio \'Class not present\' to \'Class present\' (for every class over every audio file)"] = ratios
 
-        with open(os.path.join("plots/bird_dataset/", f"Bird_stats.yaml"), "w") as fp:
+        with open(os.path.join("plots/BirdSED/", f"Bird_stats.yaml"), "w") as fp:
             yaml.dump(bird_data_dict, fp)

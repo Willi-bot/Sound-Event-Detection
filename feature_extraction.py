@@ -7,7 +7,7 @@ from tqdm import tqdm
 sampling_rates = {
     'TUT': 44100,
     'desed_2022': 16000,
-    'bird_dataset': 16000
+    'BirdSED': 16000
 }
 
 

@@ -38,7 +38,7 @@ def get_classes(dataset, dataset_location):
         meta_data_path = dataset_location + dataset + '/metadata/train/audioset_strong.tsv'
         data = pd.read_csv(meta_data_path, sep='\t')
         classes = data['event_label'].unique().tolist()
-    elif dataset == 'bird_dataset':
+    elif dataset == 'BirdSED':
         classes = ['bird']
     else:
         classes = None
@@ -113,7 +113,7 @@ def get_splits(dataset, dataset_location, fold=None, use_weak=False, use_unlabel
         test_files += glob.glob(dataset_dir + '/audio/eval21_16k/*.wav')
         test_labels.append(dataset_dir + '/metadata/Ground-truth/mapped_ground_truth_eval.tsv')
         test_files = [file.replace(dataset_dir + '/', '', 1) for file in test_files]
-    elif dataset == 'bird_dataset':
+    elif dataset == 'BirdSED':
         with open(dataset_dir + '/splits/train.txt', 'r') as f:
             train_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
             train_labels = [dataset_location + dataset + '/' +  file.replace('audio', 'binary_metadata').replace('.wav', '.txt') for file in train_files]
@@ -149,7 +149,7 @@ def get_binary_labels(metadata_files, dataset_location, dataset, clip_length, bl
             metadata = pd.read_csv(metadata_file, sep='\t')
             filenames = metadata['filename'].unique().tolist()
             event_keys = ['onset', 'offset', 'event_label']
-        elif dataset == 'bird_dataset':
+        elif dataset == 'BirdSED':
             metadata = pd.read_csv(metadata_file, sep='\t', names=['onset', 'offset', 'event'], header=None)
             filenames = ['soundscapes/audio/' + metadata_file.split('/')[-1]]
             event_keys = ['onset', 'offset', 'event']
@@ -169,7 +169,7 @@ def get_binary_labels(metadata_files, dataset_location, dataset, clip_length, bl
                 file_metadata = metadata.loc[metadata['filename'] == filename]
                 file_path = metadata_file[metadata_file.find('metadata'):]
                 file_path = metadata2filepath[file_path] + filename
-            elif dataset == 'bird_dataset':
+            elif dataset == 'BirdSED':
                 audio_length = 10.
                 file_metadata = metadata
                 file_path = filename.replace('.txt', '.wav')
@@ -250,7 +250,7 @@ def get_test_files(dataset_location, dataset, fold=None):
         file_path = dataset_location + f'desed_2022/audio/eval21_16k/*.wav'
         test_files = glob.glob(file_path)
         test_files = [file.replace(dataset_location + 'desed_2022/', '') for file in test_files]
-    elif dataset == 'bird_dataset':
+    elif dataset == 'BirdSED':
         with open(dataset_location + dataset + '/splits/test.txt', 'r') as f:
             test_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
     else:
