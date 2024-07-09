@@ -132,7 +132,7 @@ if __name__ == "__main__":
     dev_audio_files, dev_label_files = dev
     test_audio_files, test_label_files = test
 
-    classes = get_classes(args.dataset, args.dataset_location)
+    classes = get_classes(args.dataset, args.dataset_location, args.fold)
     cls2id, id2cls = {}, {}
     for i, cls in enumerate(classes):
         cls2id[cls], id2cls[i] = i, cls
@@ -243,7 +243,8 @@ if __name__ == "__main__":
             device,
             dev_loader,
             id2cls,
-            decision_threshold=args.decision_threshold
+            decision_threshold=args.decision_threshold,
+            apply_sigmoid=(args.model != 'Baseline')
         )
         print(f"dev results at epoch {epoch}:\n{yaml.dump(dev_results)}")
         writer.add_scalar('F1-Score/dev', dev_results['f1'], epoch)

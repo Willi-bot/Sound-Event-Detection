@@ -28,7 +28,7 @@ metadata2filepath = {
 }
 
 
-def get_classes(dataset, dataset_location):
+def get_classes(dataset, dataset_location, fold):
     if dataset == 'TUT':
         meta_data_path = dataset_location + dataset + '/meta.txt'
         data = pd.read_csv(meta_data_path, sep='\t',
@@ -39,7 +39,13 @@ def get_classes(dataset, dataset_location):
         data = pd.read_csv(meta_data_path, sep='\t')
         classes = data['event_label'].unique().tolist()
     elif dataset == 'BirdSED':
-        classes = ['bird']
+        if fold == 1:
+            classes = []
+            with open(dataset_location + dataset + '/bird_classes.txt') as f:
+                    for line in f.readlines():
+                        classes.append(line.replace('\n', ''))
+        else:
+            classes = ['bird']
     else:
         classes = None
 
@@ -114,17 +120,22 @@ def get_splits(dataset, dataset_location, fold=None, use_weak=False, use_unlabel
         test_labels.append(dataset_dir + '/metadata/Ground-truth/mapped_ground_truth_eval.tsv')
         test_files = [file.replace(dataset_dir + '/', '', 1) for file in test_files]
     elif dataset == 'BirdSED':
-        with open(dataset_dir + '/splits/train.txt', 'r') as f:
+        if fold == 1:
+            metadata = 'metadata'
+        else:
+            metadata = 'binary_metadata'
+
+        with open(dataset_dir + '/splits/stratified/train.txt', 'r') as f:
             train_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
-            train_labels = [dataset_location + dataset + '/' +  file.replace('audio', 'binary_metadata').replace('.wav', '.txt') for file in train_files]
+            train_labels = [dataset_location + dataset + '/' +  file.replace('audio', metadata).replace('.wav', '.txt') for file in train_files]
 
-        with open(dataset_dir + '/splits/val.txt', 'r') as f:
+        with open(dataset_dir + '/splits/stratified/val.txt', 'r') as f:
             dev_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
-            dev_labels = [dataset_location + dataset + '/' + file.replace('audio', 'binary_metadata').replace('.wav', '.txt') for file in dev_files]
+            dev_labels = [dataset_location + dataset + '/' + file.replace('audio', metadata).replace('.wav', '.txt') for file in dev_files]
 
-        with open(dataset_dir + '/splits/test.txt', 'r') as f:
+        with open(dataset_dir + '/splits/stratified/test.txt', 'r') as f:
             test_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
-            test_labels = [dataset_location + dataset + '/' + file.replace('audio', 'binary_metadata').replace('.wav', '.txt') for file in test_files]
+            test_labels = [dataset_location + dataset + '/' + file.replace('audio', metadata).replace('.wav', '.txt') for file in test_files]
     else:
         train_files, dev_files, test_files = [], [], []
         train_labels, dev_labels, test_labels = [], [], []
@@ -251,8 +262,12 @@ def get_test_files(dataset_location, dataset, fold=None):
         test_files = glob.glob(file_path)
         test_files = [file.replace(dataset_location + 'desed_2022/', '') for file in test_files]
     elif dataset == 'BirdSED':
-        with open(dataset_location + dataset + '/splits/test.txt', 'r') as f:
-            test_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
+        if fold == 1:
+            with open(dataset_location + dataset + '/splits/stratified/test.txt', 'r') as f:
+                test_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
+        else:
+            with open(dataset_location + dataset + '/splits/test.txt', 'r') as f:
+                test_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
     else:
         test_files = None
 
