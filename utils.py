@@ -122,10 +122,12 @@ def get_splits(dataset, dataset_location, fold=None, use_weak=False, use_unlabel
     elif dataset == 'BirdSED':
         if fold == 1:
             metadata = 'metadata'
+            split = '/splits/stratified'
         else:
             metadata = 'binary_metadata'
+            split = '/splits'
 
-        with open(dataset_dir + '/splits/stratified/train.txt', 'r') as f:
+        with open(dataset_dir + split + '/train.txt', 'r') as f:
             train_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
             train_labels = [dataset_location + dataset + '/' +  file.replace('audio', metadata).replace('.wav', '.txt') for file in train_files]
 
