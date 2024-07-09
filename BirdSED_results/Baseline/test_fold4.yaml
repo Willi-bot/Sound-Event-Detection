@@ -1,8 +1,0 @@
-accuracy: 0.415352
-f1: 0.5869239595521114
-precision: 0.415352
-recall: 1.0
-bird:
-  f1: 0.5869239595521114
-  precision: 0.415352
-  recall: 1.0

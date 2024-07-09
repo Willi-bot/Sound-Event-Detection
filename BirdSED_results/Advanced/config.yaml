@@ -1,7 +1,7 @@
 batch_size: 32
 block_length: 40
 clip_length: 10000
-dataset: bird_dataset
+dataset: BirdSED
 dataset_location: /nas/student/WilliSchiebelbein/
 decision_threshold: 0.5
 dropout: 0.5
