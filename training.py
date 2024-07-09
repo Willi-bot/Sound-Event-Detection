@@ -113,11 +113,12 @@ if __name__ == "__main__":
         '--model',
         default='Basic',
         choices=['Basic', 'Advanced', 'Baseline'],
-        required=True
+        required=True,
+        type=str
     )
     args = parser.parse_args()
 
-    config = vars(args)
+    config = vars(args).copy()
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -278,7 +279,8 @@ if __name__ == "__main__":
         device,
         test_loader,
         id2cls,
-        decision_threshold=args.decision_threshold
+        decision_threshold=args.decision_threshold,
+        apply_sigmoid=(args.model != 'Baseline')
     )
     print(f"Best test results:\n{yaml.dump(test_results)}")
     with open(os.path.join(result_dir, f"test_fold{args.fold}.yaml"), "w") as fp:

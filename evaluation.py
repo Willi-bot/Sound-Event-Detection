@@ -2,7 +2,7 @@ import torch
 from sklearn.metrics import f1_score, recall_score, precision_score, accuracy_score, confusion_matrix
 import numpy as np
 
-def evaluate(model, device, data_loader, id2cls, decision_threshold=0.5):
+def evaluate(model, device, data_loader, id2cls, decision_threshold=0.5, apply_sigmoid=True):
     model.to(device)
     model.eval()
     num_classes = len(id2cls.keys())
@@ -15,7 +15,9 @@ def evaluate(model, device, data_loader, id2cls, decision_threshold=0.5):
             features = [feature.to(device) for feature in features]
         else:
             features = features.to(device)
-        batch_pred = torch.sigmoid(model(features))
+        batch_pred = model(features)
+        if apply_sigmoid:
+            batch_pred = torch.sigmoid(batch_pred)
         batch_pred = torch.where(batch_pred > decision_threshold, 1, 0).to('cpu')
 
         y.append(labels)
