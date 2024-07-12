@@ -1,9 +1,0 @@
-Epoch: 2
-accuracy: 0.425248
-f1: 0.5967354453400391
-precision: 0.425248
-recall: 1.0
-bird:
-  f1: 0.0
-  precision: 0.0
-  recall: 0.0

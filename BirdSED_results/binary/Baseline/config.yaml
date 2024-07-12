@@ -1,13 +1,13 @@
 batch_size: 32
 block_length: 40
 clip_length: 10000
-dataset: bird_dataset
-dataset_location: dataset/
+dataset: BirdSED
+dataset_location: /nas/student/WilliSchiebelbein/
 decision_threshold: 0.5
 dropout: 0.5
-early_stopping: 20
+early_stopping: 40
 epochs: 400
-fold: 4
+fold: 2
 learning_rate: 0.0005
 model:
   name: Baseline
