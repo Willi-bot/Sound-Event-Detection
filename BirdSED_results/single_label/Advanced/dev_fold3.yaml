@@ -1,0 +1,373 @@
+Epoch: 2
+accuracy: 0.9954296270836913
+f1: 0.0
+precision: 0.0
+recall: 0.0
+Accipiter_gentilis:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Acrocephalus_palustris:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Acrocephalus_scirpaceus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Aegithalos_caudatus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Alauda_arvensis:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Anser_anser:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Anthus_pratensis:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Anthus_trivialis:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Buteo_buteo:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Carduelis_cannabina:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Carduelis_carduelis:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Carduelis_chloris:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Carduelis_spinus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Certhia_brachydactyla:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Certhia_familiaris:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Coccothraustes_coccothraustes:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Columba_oenas:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Columba_palumbus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Corvus_corax:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Corvus_corone_cornix:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Corvus_corone_corone:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Corvus_monedula:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Coturnix_coturnix:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Cuculus_canorus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Cyanistes_caeruleus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Dendrocopos_major:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Dendrocopos_medius:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Dendrocopos_minor:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Dryocopus_martius:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Emberiza_calandra:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Emberiza_citrinella:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Erithacus_rubecula:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Falco_tinnunculus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Ficedula_hypoleuca:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Ficedula_parva:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Fringilla_coelebs:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Fringilla_montifringilla:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Gallinago_gallinago:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Garrulus_glandarius:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Grus_grus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Hippolais_icterina:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Jynx_torquilla:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Lanius_collurio:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Locustella_naevia:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Loxia_curvirostra:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Lullula_arborea:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Luscinia_megarhynchos:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Milvus_migrans:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Motacilla_alba:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Motacilla_flava:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Muscicapa_striata:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Oenanthe_oenanthe:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Oriolus_oriolus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Parus_cristatus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Parus_major:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Parus_montanus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Parus_palustris:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Passer_domesticus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Passer_montanus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Periparus_ater:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Phasianus_colchicus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Phoenicurus_ochruros:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Phoenicurus_phoenicurus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Phylloscopus_bonelli:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Phylloscopus_collybita:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Phylloscopus_sibilatrix:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Phylloscopus_trochilus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Pica_pica:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Picus_canus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Picus_viridis:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Prunella_modularis:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Pyrrhula_pyrrhula:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Regulus_ignicapillus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Regulus_regulus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Saxicola_rubetra:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Saxicola_rubicola:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Scolopax_rusticola:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Sitta_europaea:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Streptopelia_turtur:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Strix_aluco:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Sturnus_vulgaris:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Sylvia_atricapilla:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Sylvia_borin:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Sylvia_communis:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Sylvia_curucca:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Troglodytes_troglodytes:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Turdus_iliacus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Turdus_merula:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Turdus_philomelos:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Turdus_pilaris:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Turdus_viscivorus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Vanellus_vanellus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0

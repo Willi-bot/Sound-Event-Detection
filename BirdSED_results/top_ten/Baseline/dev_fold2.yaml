@@ -1,0 +1,45 @@
+Epoch: 2
+accuracy: 0.9183384615384615
+f1: 0.0
+precision: 0.0
+recall: 0.0
+Carduelis_chloris:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Columba_palumbus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Coturnix_coturnix:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Dendrocopos_major:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Lanius_collurio:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Loxia_curvirostra:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Lullula_arborea:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Milvus_migrans:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Passer_domesticus:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
+Phylloscopus_sibilatrix:
+  f1: 0.0
+  precision: 0.0
+  recall: 0.0
