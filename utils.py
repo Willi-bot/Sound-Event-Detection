@@ -39,11 +39,15 @@ def get_classes(dataset, dataset_location, fold):
         data = pd.read_csv(meta_data_path, sep='\t')
         classes = data['event_label'].unique().tolist()
     elif dataset == 'BirdSED':
-        if fold == 1:
+        if fold in [1, 3]:
             classes = []
             with open(dataset_location + dataset + '/bird_classes.txt') as f:
                     for line in f.readlines():
                         classes.append(line.replace('\n', ''))
+        elif fold == 2:
+            classes = ['Carduelis_chloris', 'Milvus_migrans', 'Lanius_collurio', 'Columba_palumbus',
+                       'Coturnix_coturnix', 'Phylloscopus_sibilatrix', 'Passer_domesticus', 'Dendrocopos_major',
+                       'Loxia_curvirostra', 'Lullula_arborea']
         else:
             classes = ['bird']
     else:
@@ -121,22 +125,32 @@ def get_splits(dataset, dataset_location, fold=None, use_weak=False, use_unlabel
         test_files = [file.replace(dataset_dir + '/', '', 1) for file in test_files]
     elif dataset == 'BirdSED':
         if fold == 1:
+            soundscapes = 'soundscapes'
             metadata = 'metadata'
             split = '/splits/stratified'
+        elif fold == 2:
+            soundscapes = 'soundscapes'
+            metadata = 'metadata'
+            split = '/splits/top_ten'
+        elif fold == 3:
+            soundscapes = 'single_label_soundscapes'
+            metadata = 'metadata'
+            split = '/splits/single_label'
         else:
+            soundscapes = 'soundscapes'
             metadata = 'binary_metadata'
             split = '/splits'
 
         with open(dataset_dir + split + '/train.txt', 'r') as f:
-            train_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
+            train_files = [soundscapes + '/audio/' + file.replace('\n', '') for file in f.readlines()]
             train_labels = [dataset_location + dataset + '/' +  file.replace('audio', metadata).replace('.wav', '.txt') for file in train_files]
 
-        with open(dataset_dir + '/splits/stratified/val.txt', 'r') as f:
-            dev_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
+        with open(dataset_dir + split + '/val.txt', 'r') as f:
+            dev_files = [soundscapes + '/audio/' + file.replace('\n', '') for file in f.readlines()]
             dev_labels = [dataset_location + dataset + '/' + file.replace('audio', metadata).replace('.wav', '.txt') for file in dev_files]
 
-        with open(dataset_dir + '/splits/stratified/test.txt', 'r') as f:
-            test_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
+        with open(dataset_dir + split + '/test.txt', 'r') as f:
+            test_files = [soundscapes + '/audio/' + file.replace('\n', '') for file in f.readlines()]
             test_labels = [dataset_location + dataset + '/' + file.replace('audio', metadata).replace('.wav', '.txt') for file in test_files]
     else:
         train_files, dev_files, test_files = [], [], []
@@ -145,7 +159,7 @@ def get_splits(dataset, dataset_location, fold=None, use_weak=False, use_unlabel
     return (train_files, train_labels), (dev_files, dev_labels), (test_files, test_labels)
 
 
-def get_binary_labels(metadata_files, dataset_location, dataset, clip_length, block_length, cls2id):
+def get_binary_labels(metadata_files, dataset_location, dataset, fold, clip_length, block_length, cls2id):
     clip_length = 0.001 * clip_length  # ms to s
     block_length = 0.001 * block_length  # ms to s
 
@@ -164,7 +178,8 @@ def get_binary_labels(metadata_files, dataset_location, dataset, clip_length, bl
             event_keys = ['onset', 'offset', 'event_label']
         elif dataset == 'BirdSED':
             metadata = pd.read_csv(metadata_file, sep='\t', names=['onset', 'offset', 'event'], header=None)
-            filenames = ['soundscapes/audio/' + metadata_file.split('/')[-1]]
+            single_label = 'single_label_' if fold == 3 else ''
+            filenames = [single_label + 'soundscapes/audio/' + metadata_file.split('/')[-1]]
             event_keys = ['onset', 'offset', 'event']
         else:
             metadata = None
@@ -267,6 +282,12 @@ def get_test_files(dataset_location, dataset, fold=None):
         if fold == 1:
             with open(dataset_location + dataset + '/splits/stratified/test.txt', 'r') as f:
                 test_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
+        elif fold == 2:
+            with open(dataset_location + dataset + '/splits/top_ten/test.txt', 'r') as f:
+                test_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
+        elif fold == 3:
+            with open(dataset_location + dataset + '/splits/single_label/test.txt', 'r') as f:
+                test_files = ['single_label_soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
         else:
             with open(dataset_location + dataset + '/splits/test.txt', 'r') as f:
                 test_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
@@ -298,7 +319,7 @@ def get_labels(name, dataset_location, dataset, fold, clip_length, block_length,
             # TODO
 
         if not weak:
-            labels = get_binary_labels(label_files, dataset_location, dataset, clip_length, block_length, cls2id)
+            labels = get_binary_labels(label_files, dataset_location, dataset, fold, clip_length, block_length, cls2id)
         else:
             labels = get_weak_labels(label_files, dataset, cls2id)
 
