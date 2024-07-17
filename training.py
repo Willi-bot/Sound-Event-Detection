@@ -15,7 +15,7 @@ from evaluation import evaluate, get_prediction_from_raw_output
 from utils import (get_classes, get_splits, class_weights, get_test_files, get_labels)
 from data_loading import get_dataloader
 from feature_extraction import sampling_rates, get_features, extract_mel_spectrograms
-from models import BasicRCNN, AdvancedRCNN
+from models import BasicRCNN, AdvancedRCNN, AttentionRCNN
 from nnet.CRNN import CRNN
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--model',
         default='Basic',
-        choices=['Basic', 'Advanced', 'Baseline'],
+        choices=['Basic', 'Advanced', 'Baseline', 'Attention'],
         required=True,
         type=str
     )
@@ -185,6 +185,8 @@ if __name__ == "__main__":
                      pooling=[ [ 2, 2 ], [ 1, 2 ], [ 1, 2 ], [ 1, 2 ], [ 1, 2 ], [ 1, 2 ], [ 1, 2 ] ],
                      dropout_recurrent=0)
         loss_fn = torch.nn.BCELoss()
+    elif args.model == 'Attention':
+        model = AttentionRCNN(num_classes, args.dropout)
     else:
         print("Choose a Model!")
         model = None
@@ -201,7 +203,7 @@ if __name__ == "__main__":
 
 
     # init rest
-    max_f1 = 0
+    max_f1 = -1.
     best_epoch = 0
     best_results = {}
     best_class_results = {}
@@ -315,7 +317,8 @@ if __name__ == "__main__":
 
         # turn output into appropriate labels with this format:
         prediction = get_prediction_from_raw_output(raw_prediction, id2cls, audio_duration, args.block_length,
-                                                    test_file, decision_threshold=args.decision_threshold)
+                                                    test_file, decision_threshold=args.decision_threshold,
+                                                    apply_sigmoid = (args.model != 'Baseline'))
 
         predictions += prediction
 
