@@ -46,8 +46,9 @@ def evaluate(model, device, data_loader, id2cls, decision_threshold=0.5, apply_s
 
     return results, class_results
 
-def get_prediction_from_raw_output(raw_prediction, id2cls, audio_duration, block_length, file_name, decision_threshold=0.5):
-    raw_prediction = torch.sigmoid(raw_prediction)
+def get_prediction_from_raw_output(raw_prediction, id2cls, audio_duration, block_length, file_name, decision_threshold=0.5, apply_sigmoid=False):
+    if apply_sigmoid:
+        raw_prediction = torch.sigmoid(raw_prediction)
     raw_prediction = torch.where(raw_prediction > decision_threshold, 1, 0).to('cpu')
 
     # convert block_length to ms
