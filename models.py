@@ -107,8 +107,7 @@ class AdvancedRCNN(torch.nn.Module):
 
 
     def forward(self, x):
-        shape = x.shape
-        x = torch.reshape(x, (shape[0], 1, shape[1], shape[2]))
+        x = torch.unsqueeze(x, 1)
 
         x = self.cnn1(x)
         x = self.cnn2(x)
@@ -118,8 +117,7 @@ class AdvancedRCNN(torch.nn.Module):
         x = self.cnn6(x)
 
         # bring time axis to the front and flatten last two dimensions
-        shape = x.shape
-        x = torch.reshape(x, (shape[0], shape[2], shape[1], shape[3]))
+        x = torch.transpose(x, 1, 2)
         x = self.flatten(x)
 
         residual = x
@@ -214,20 +212,22 @@ class AttentionRCNN(torch.nn.Module):
         super(AttentionRCNN, self).__init__()
         self.dropout = torch.nn.Dropout(dropout)
 
-        self.cnn1 = SimpleCNNBlock(1, 16, dropout=dropout)
-        self.cnn2 = SimpleCNNBlock(16, 32, dropout=dropout)
-        self.cnn3 = SimpleCNNBlock(32, 64, dropout=dropout)
-        self.cnn4 = SimpleCNNBlock(64, 128, dropout=dropout)
-        self.cnn5 = SimpleCNNBlock(128, 128, dropout=dropout)
-        self.cnn6 = SimpleCNNBlock(128, 128, maxpool_kernel=(2, 2), stride=2, dropout=dropout)
+        self.cnn1 = ShakeGluCNNBlock(1, 16, dropout=dropout)
+        self.cnn2 = ShakeGluCNNBlock(16, 32, dropout=dropout)
+        self.cnn3 = ShakeGluCNNBlock(32, 64, dropout=dropout)
+        self.cnn4 = ShakeGluCNNBlock(64, 128, dropout=dropout)
+        self.cnn5 = ShakeGluCNNBlock(128, 128, dropout=dropout)
+        self.cnn6 = ShakeGluCNNBlock(128, 128, maxpool_kernel=(2, 2), stride=2, dropout=dropout)
 
         self.flatten = torch.nn.Flatten(start_dim=2)
         self.rnn1 = torch.nn.GRU(3712, 1024, batch_first=True, bidirectional=True)
+        self.layernorm1 = torch.nn.LayerNorm(2048)
         self.rnn2 = torch.nn.GRU(2048, 1024, batch_first=True, bidirectional=True)
+        self.layernorm2 = torch.nn.LayerNorm(2048)
 
         # attention part
         self.embed = torch.nn.Linear(2048, 256)
-        self.layernorm = torch.nn.LayerNorm(256)
+        self.layernorm3 = torch.nn.LayerNorm(256)
         self.attention = torch.nn.MultiheadAttention(embed_dim=256, num_heads=4, dropout=dropout)
 
         self.fc1 = torch.nn.Linear(256, num_classes)
@@ -238,8 +238,7 @@ class AttentionRCNN(torch.nn.Module):
 
 
     def forward(self, x):
-        shape = x.shape
-        x = torch.reshape(x, (shape[0], 1, shape[1], shape[2]))
+        x = torch.unsqueeze(x, 1)
 
         x = self.cnn1(x)
         x = self.cnn2(x)
@@ -249,18 +248,19 @@ class AttentionRCNN(torch.nn.Module):
         x = self.cnn6(x)
 
         # bring time axis to the front and flatten last two dimensions
-        shape = x.shape
-        x = torch.reshape(x, (shape[0], shape[2], shape[1], shape[3]))
+        x = torch.transpose(x, 1, 2)
         x = self.flatten(x)
 
         x, _ = self.rnn1(x)
+        x = self.layernorm1(x)
         x = self.relu(x)
         x, _ = self.rnn2(x)
+        x = self.layernorm2(x)
 
         x = self.embed(x)
         residual = x
 
-        x = self.layernorm(x)
+        x = self.layernorm3(x)
         x, _ = self.attention(x, x, x)
 
         x = x + residual
@@ -280,23 +280,29 @@ class AttentionRCNN(torch.nn.Module):
         return x
 
 
-class SimpleCNNBlock(torch.nn.Module):
+class ShakeGluCNNBlock(torch.nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, maxpool_kernel=(1, 2),
                  maxpool_stride=1, dropout=0):
-        super(SimpleCNNBlock, self).__init__()
+        super(ShakeGluCNNBlock, self).__init__()
         self.dropout = torch.nn.Dropout(dropout)
 
         # only works with stride = 1
         padding = kernel_size // 2
         self.conv = torch.nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, stride=stride)
         self.bn1 = torch.nn.BatchNorm2d(out_channels)
+        self.glu = torch.nn.GLU(dim=1)
+        self.shake = ShakeShakeBlock(int(.5*out_channels), out_channels)
+        self.bn2 = torch.nn.BatchNorm2d(out_channels)
         self.relu = torch.nn.ReLU(inplace=True)
         self.avgpool = torch.nn.AvgPool2d(maxpool_kernel, maxpool_stride)
-
 
     def forward(self, x):
         x = self.conv(x)
         x = self.bn1(x)
+        x = self.glu(x)
+        x = self.dropout(x)
+        x = self.dropout(self.shake(x))
+        x = self.bn2(x)
         x = self.relu(x)
         x = self.dropout(x)
         x = self.avgpool(x)
