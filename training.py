@@ -12,7 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 import librosa
 
 from evaluation import evaluate, get_prediction_from_raw_output
-from utils import (get_classes, get_splits, class_weights, get_test_files, get_labels)
+from utils import get_classes, get_splits, class_weights, get_test_files, get_labels, dataset_ratio
 from data_loading import get_dataloader
 from feature_extraction import sampling_rates, get_features, extract_mel_spectrograms
 from models import BasicRCNN, AdvancedRCNN, AttentionRCNN
@@ -169,9 +169,9 @@ if __name__ == "__main__":
     # initialize model & training stuff (optimizer, scheduler, loss func...)
     if args.use_weights:
         weights = class_weights[args.dataset]
-        loss_fn = torch.nn.BCEWithLogitsLoss(weight=torch.tensor(weights).to(device))
+        loss_fn = torch.nn.BCEWithLogitsLoss(weight=torch.tensor(weights).to(device), pos_weight=dataset_ratio[args.dataset])
     else:
-        loss_fn = torch.nn.BCEWithLogitsLoss()
+        loss_fn = torch.nn.BCEWithLogitsLoss(pos_weight=dataset_ratio[args.dataset])
 
     if args.model == 'Basic':
         model = BasicRCNN(num_classes, 64)

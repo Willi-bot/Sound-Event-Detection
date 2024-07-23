@@ -14,7 +14,8 @@ class_weights = {
 
 dataset_ratio = {
     'TUT': torch.tensor(5.),
-    'desed_2022': torch.tensor(50.)
+    'desed_2022': torch.tensor(50.),
+    'BirdSED': torch.tensor(50.)
 }
 
 metadata2filepath = {
@@ -327,3 +328,15 @@ def get_labels(name, dataset_location, dataset, fold, clip_length, block_length,
         np.save(file_path, labels)
 
     return labels
+
+
+def get_single_label(labels):
+    new_labels = {}
+    for key, value in labels.items():
+        cls = np.max(value, axis=0)
+
+        binary_labels = np.max(value, axis=1)
+
+        new_labels[key] = (binary_labels, cls)
+
+    return new_labels
