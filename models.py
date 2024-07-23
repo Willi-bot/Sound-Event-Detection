@@ -302,3 +302,72 @@ class SimpleCNNBlock(torch.nn.Module):
         x = self.avgpool(x)
 
         return x
+
+
+class SingleLabelRCNN(torch.nn.Module):
+
+    def __init__(self, num_classes, dropout=0):
+        super(SingleLabelRCNN, self).__init__()
+        self.dropout = torch.nn.Dropout(dropout)
+
+        self.cnn1 = CNNBlock(1, 16, conv_channel=8, dropout=dropout)
+        self.cnn2 = CNNBlock(16, 32, conv_channel=16, dropout=dropout)
+        self.cnn3 = CNNBlock(32, 64, conv_channel=32, dropout=dropout)
+        self.cnn4 = CNNBlock(64, 128, conv_channel=64, dropout=dropout)
+        self.cnn5 = CNNBlock(128, 128, conv_channel=64, dropout=dropout)
+        self.cnn6 = CNNBlock(128, 128, conv_channel=64, maxpool_kernel=(2, 2), stride=2, dropout=dropout)
+
+        # 1408/1152
+        self.flatten = torch.nn.Flatten(start_dim=2)
+        self.rnn = torch.nn.GRU(2688, 1344, batch_first=True, bidirectional=True)
+
+        self.sed_fc1 = torch.nn.Linear(2688 * 2, 100)
+        self.sed_fc2 = torch.nn.Linear(100, 1)
+
+        self.classification_fc1 = torch.nn.Linear(2688 * 2, 50)
+        self.classification_flatten = torch.nn.Flatten(start_dim=1)
+        self.classification_fc2 = torch.nn.Linear(50 * 250, num_classes)
+
+        self.sigmoid = torch.nn.Sigmoid()
+        self.softmax = torch.nn.Softmax(dim=-1)
+        self.relu = torch.nn.ReLU()
+
+
+    def forward(self, x):
+        x = torch.unsqueeze(x, 1)
+
+        x = self.cnn1(x)
+        x = self.cnn2(x)
+        x = self.cnn3(x)
+        x = self.cnn4(x)
+        x = self.cnn5(x)
+        x = self.cnn6(x)
+
+        # bring time axis to the front and flatten last two dimensions
+        x = torch.transpose(x, 1, 2)
+        x = self.flatten(x)
+
+        residual = x
+        x, _ = self.rnn(x)
+        x = self.dropout(x)
+
+        x = torch.cat([x, residual], dim=-1)
+
+        sed_x = self.relu(self.sed_fc1(x))
+        sed_x = torch.squeeze(self.sed_fc2(sed_x))
+
+        cls_x = self.relu(self.classification_fc1(x))
+        cls_x = self.classification_flatten(cls_x)
+        cls_x = self.classification_fc2(cls_x)
+
+        return sed_x, cls_x
+
+    def get_weak_logits(self, x):
+        sig_x = self.sigmoid(x)
+        soft_x = self.softmax(x)
+
+        x = soft_x * sig_x
+
+        x = torch.mean(x, dim=1)
+
+        return x

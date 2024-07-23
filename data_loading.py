@@ -26,7 +26,13 @@ class AudioClipDataset(Dataset):
         if self.spec_aug is not None:
             features = self.spec_aug(features)
 
-        return features.float(), torch.from_numpy(self.labels[idx]).float()
+        labels = self.labels[idx]
+        if type(labels) is tuple:
+            labels = (torch.from_numpy(labels[0]).float(), torch.from_numpy(labels[1]).float())
+        else:
+            labels = torch.from_numpy(labels).float()
+
+        return features.float(), labels
 
 
 def get_dataloader(features, labels, batch_size, shuffle=False, drop_last=False, use_specaug=False):
