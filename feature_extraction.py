@@ -11,7 +11,7 @@ sampling_rates = {
 }
 
 
-def extract_mel_spectrograms(audio_files, dataset_location, dataset, clip_length, n_fft, n_mels, hop_length, win_length):
+def extract_mel_spectrograms(audio_files, dataset_location, dataset, clip_length, n_fft, n_mels, hop_length, win_length, save_location):
     sampling_rate = sampling_rates[dataset]
     clip_length = 0.001 * clip_length # ms to s
 
@@ -37,32 +37,41 @@ def extract_mel_spectrograms(audio_files, dataset_location, dataset, clip_length
             shape = mel_spec.shape
             mel_spec = np.reshape(mel_spec, (shape[1], shape[0]))
 
-            features[(i, audio_file)] = mel_spec
+            audio_file_no_slashes = audio_file.replace('/', '_slash_')
+            mel_file_path = save_location + '/' + audio_file_no_slashes + '_' + str(i) + '.npy'
+            np.save(mel_file_path, mel_spec)
+
+            features[(i, audio_file)] = mel_file_path
 
     return features
 
 
 def get_features(name, dataset_location, dataset, fold, clip_length, n_fft, n_mels, hop_length, win_length, audio_file_folder=None, audio_files=None):
-    file_name = name + f'_{fold}_{clip_length}_{n_fft}_{n_mels}_{hop_length}_{win_length}.npy'
-    file_path = dataset_location + dataset + '/' + file_name
+    dir_name = name + f'_{fold}_{clip_length}_{n_fft}_{n_mels}_{hop_length}_{win_length}'
+    dir_path = dataset_location + dataset + '/' + dir_name
 
-    if os.path.isfile(file_path):
-        print('loading features from ' + file_path + "...")
-        features = np.load(file_path, allow_pickle=True).item()
+    if os.path.isdir(dir_path):
+        print('getting feature dict from ' + dir_path + "...")
+        # get features dict
+        features = {}
+        for filename in glob.glob(dir_path + '/*.npy', ):
+            key_name = filename.replace('\\', '/').split('/')[-1]
+            features[key_name] = filename
     else:
+        os.makedirs(dir_path, exist_ok=True)
+
         if audio_file_folder is not None:
             audio_path = dataset_location + dataset + '/' + audio_file_folder
             print('extracting features from ' + audio_path + "...")
             audio_files = glob.glob(audio_path)
             audio_files = [file.replace(dataset_location + dataset + '/', '') for file in audio_files]
         elif audio_files is not None:
-            print('extracting features from given audio files...')
+            print('extracting and saving features from given audio files...')
         else:
             # TODO
             pass
 
-        features = extract_mel_spectrograms(audio_files, dataset_location, dataset, clip_length, n_fft, n_mels, hop_length, win_length)
-        print("saving features...")
-        np.save(file_path, features)
+        features = extract_mel_spectrograms(audio_files, dataset_location, dataset, clip_length, n_fft, n_mels, hop_length, win_length, dir_path)
+        print("Done!")
 
     return features

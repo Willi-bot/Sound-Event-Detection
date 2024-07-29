@@ -1,3 +1,4 @@
+import numpy as np
 from torch.utils.data import Dataset, DataLoader
 import torch.nn
 from torchaudio.transforms import TimeStretch, FrequencyMasking, TimeMasking
@@ -10,7 +11,7 @@ class AudioClipDataset(Dataset):
 
         if use_specaug:
             self.spec_aug = torch.nn.Sequential(
-                # TimeStretch(0.8, fixed_rate=True),
+                TimeStretch(0.8, fixed_rate=True),
                 FrequencyMasking(freq_mask_param=80),
                 TimeMasking(time_mask_param=80),
             )
@@ -21,12 +22,15 @@ class AudioClipDataset(Dataset):
         return len(self.features)
 
     def __getitem__(self, idx):
-        features = torch.from_numpy(self.features[idx])
+        features = np.load(self.features[idx])
+        labels = np.load(self.labels[idx])
+
+        features = torch.from_numpy(features)
 
         if self.spec_aug is not None:
             features = self.spec_aug(features)
 
-        labels = self.labels[idx]
+
         if type(labels) is tuple:
             labels = (torch.from_numpy(labels[0]).float(), torch.from_numpy(labels[1]).float())
         else:

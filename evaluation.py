@@ -81,6 +81,7 @@ def get_prediction_from_raw_output(raw_prediction, id2cls, audio_duration, block
 
 
 def evaluate_single_label(model, device, data_loader, id2cls, decision_threshold=0.5):
+    # seperate evaluation method for Single label per file BirdSED
     model.to(device)
     model.eval()
     num_classes = len(id2cls.keys())

@@ -9,13 +9,14 @@ import torch
 from tqdm import tqdm
 
 class_weights = {
-    'TUT': [0.8, 0.5, 0.85, 0.95, 0.85, 0.9]
+    'TUT': [0.8, 0.5, 0.85, 0.95, 0.85, 0.9],
+    'BirdSED': torch.ones(92, dtype=torch.float)
 }
 
 dataset_ratio = {
     'TUT': torch.tensor(5.),
     'desed_2022': torch.tensor(50.),
-    'BirdSED': torch.tensor(50.)
+    'BirdSED': torch.tensor(100.)
 }
 
 metadata2filepath = {
@@ -40,6 +41,11 @@ def get_classes(dataset, dataset_location, fold):
         data = pd.read_csv(meta_data_path, sep='\t')
         classes = data['event_label'].unique().tolist()
     elif dataset == 'BirdSED':
+        # the fold determines which variant of BirdSED is done
+        # 1 = Normal
+        # 2 = Top Ten classes
+        # 3 = Single label per file
+        # 4 = Binary BirdSED
         if fold in [1, 3]:
             classes = []
             with open(dataset_location + dataset + '/bird_classes.txt') as f:
@@ -105,6 +111,7 @@ def get_splits(dataset, dataset_location, fold=None, use_weak=False, use_unlabel
         # get unlabelled
         if use_unlabelled:
             pass
+        # these currently go unused as the model can only be trained on strongly labelled data
 
         # for dev
         # get strong real
@@ -160,11 +167,10 @@ def get_splits(dataset, dataset_location, fold=None, use_weak=False, use_unlabel
     return (train_files, train_labels), (dev_files, dev_labels), (test_files, test_labels)
 
 
-def get_binary_labels(metadata_files, dataset_location, dataset, fold, clip_length, block_length, cls2id):
+def get_binary_labels(metadata_files, dataset_location, dataset, fold, clip_length, block_length, cls2id, save_location):
     clip_length = 0.001 * clip_length  # ms to s
     block_length = 0.001 * block_length  # ms to s
 
-    all_events = []
     labels = {}
     for metadata_file in tqdm(metadata_files, disable=(len(metadata_files) == 1)):
 
@@ -213,13 +219,19 @@ def get_binary_labels(metadata_files, dataset_location, dataset, fold, clip_leng
                 clip_events = get_clip_events(file_metadata, clip_length, block_length, event_keys,
                                               cls2id, onset_clip=onset_clip)
 
-                labels[(i, file_path)] = np.stack(clip_events)
-                all_events += clip_events.copy()
+                label = np.stack(clip_events)
+
+                file_path_no_slashes = file_path.replace('/', '_slash_')
+                label_file_path = save_location + '/' + file_path_no_slashes + '_' + str(i) + '.npy'
+                np.save(label_file_path, label)
+
+                labels[(i, file_path)] = label_file_path
+
 
     return labels
 
 
-def get_weak_labels(metadata_files, dataset, cls2id):
+def get_weak_labels(metadata_files, cls2id):
     num_classes = len(cls2id.keys())
 
     labels = {}
@@ -299,18 +311,23 @@ def get_test_files(dataset_location, dataset, fold=None):
 
 
 def get_labels(name, dataset_location, dataset, fold, clip_length, block_length, cls2id, metadata_location=None, metadata_files=None, weak=False):
-    file_path = dataset_location + '/' + dataset + '/' + name + f'_{fold}_{clip_length}_{block_length}.npy'
+    dir_path = dataset_location + dataset + '/' + name + f'_{fold}_{clip_length}_{block_length}'
 
-    if os.path.isfile(file_path):
-        print('loading labels from ' + file_path + "...")
-        labels = np.load(file_path, allow_pickle=True).item()
+    if os.path.isdir(dir_path):
+        labels = {}
+        print('getting labels dict from ' + dir_path + "...")
+        for filename in glob.glob(dir_path + '/*.npy'):
+            key_name = filename.replace('\\', '/').split('/')[-1]
+            labels[key_name] = filename
     else:
+        os.makedirs(dir_path, exist_ok=True)
+
         if metadata_location is not None:
             label_file = dataset_location + '/' + dataset + '/' + metadata_location
             print('extracting labels from ' + label_file + "...")
             label_files = [label_file]
         elif metadata_files is not None:
-            print('extracting labels from given metadata_files...')
+            print('extracting and saving labels from given metadata_files...')
             if type(metadata_files) is str:
                 label_files = [metadata_files]
             else:
@@ -320,12 +337,11 @@ def get_labels(name, dataset_location, dataset, fold, clip_length, block_length,
             # TODO
 
         if not weak:
-            labels = get_binary_labels(label_files, dataset_location, dataset, fold, clip_length, block_length, cls2id)
+            labels = get_binary_labels(label_files, dataset_location, dataset, fold, clip_length, block_length, cls2id, dir_path)
         else:
             labels = get_weak_labels(label_files, dataset, cls2id)
 
-        print("saving labels...")
-        np.save(file_path, labels)
+        print("Done!")
 
     return labels
 

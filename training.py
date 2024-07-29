@@ -15,7 +15,7 @@ from evaluation import evaluate, get_prediction_from_raw_output
 from utils import get_classes, get_splits, class_weights, get_test_files, get_labels, dataset_ratio
 from data_loading import get_dataloader
 from feature_extraction import sampling_rates, get_features, extract_mel_spectrograms
-from models import BasicRCNN, AdvancedRCNN, AttentionRCNN
+from models import BasicRCNN, ShakeRCNN
 from nnet.CRNN import CRNN
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -112,14 +112,20 @@ if __name__ == "__main__":
     parser.add_argument(
         '--model',
         default='Basic',
-        choices=['Basic', 'Advanced', 'Baseline', 'Attention'],
+        choices=['Basic', 'ShakeRCNN', 'Baseline'],
         required=True,
+        type=str
+    )
+    parser.add_argument(
+        '--save-folder',
+        default='',
         type=str
     )
     args = parser.parse_args()
 
     config = vars(args).copy()
 
+    # set seeds
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
     random.seed(args.seed)
@@ -132,6 +138,7 @@ if __name__ == "__main__":
     dev_audio_files, dev_label_files = dev
     test_audio_files, test_label_files = test
 
+    # get list of classes and get dicts mapping ids <-> class name
     classes = get_classes(args.dataset, args.dataset_location, args.fold)
     cls2id, id2cls = {}, {}
     for i, cls in enumerate(classes):
@@ -147,16 +154,20 @@ if __name__ == "__main__":
     # round up, because we keep last frame that might not be complete
     num_features_frames = np.ceil(float(win_length) / hop_length)
 
+    # get required data (if features already extracted loads from file, otherwise extracts features)
+    print('Fetching train data...')
     train_features = get_features("features/train", args.dataset_location, args.dataset, args.fold, args.clip_length, args.n_fft, args.n_mels, hop_length,
                             win_length, audio_files=train_audio_files)
     train_labels = get_labels('labels/train', args.dataset_location, args.dataset, args.fold, args.clip_length,
                         args.block_length, cls2id, metadata_files=train_label_files)
 
+    print('Fetching validation data...')
     dev_features = get_features("features/dev", args.dataset_location, args.dataset, args.fold, args.clip_length, args.n_fft, args.n_mels, hop_length,
                             win_length, audio_files=dev_audio_files)
     dev_labels = get_labels('labels/dev', args.dataset_location, args.dataset, args.fold, args.clip_length,
                         args.block_length, cls2id, metadata_files=dev_label_files)
 
+    print('Fetching test data...')
     test_features = get_features("features/test", args.dataset_location, args.dataset, args.fold, args.clip_length, args.n_fft, args.n_mels, hop_length,
                             win_length, audio_files=test_audio_files)
     test_labels = get_labels('labels/test', args.dataset_location, args.dataset, args.fold, args.clip_length,
@@ -175,8 +186,8 @@ if __name__ == "__main__":
 
     if args.model == 'Basic':
         model = BasicRCNN(num_classes, 64)
-    elif args.model == 'Advanced':
-        model = AdvancedRCNN(num_classes, args.dropout)
+    elif args.model == 'ShakeRCNN':
+        model = ShakeRCNN(num_classes, args.dropout)
     elif args.model == 'Baseline':
         model = CRNN(dropout=0.5, rnn_layers=2, n_in_channel=1, nclass=num_classes, attention=True, n_RNN_cell=128,
                      activation='glu', rnn_type='BGRU', kernel_size=[3, 3, 3, 3, 3, 3, 3],
@@ -185,8 +196,6 @@ if __name__ == "__main__":
                      pooling=[ [ 2, 2 ], [ 1, 2 ], [ 1, 2 ], [ 1, 2 ], [ 1, 2 ], [ 1, 2 ], [ 1, 2 ] ],
                      dropout_recurrent=0)
         loss_fn = torch.nn.BCELoss()
-    elif args.model == 'Attention':
-        model = AttentionRCNN(num_classes, args.dropout)
     else:
         print("Choose a Model!")
         model = None
@@ -195,9 +204,10 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-4)
     config['optimizer'] = 'Adam'
 
-    result_dir = "./" + args.dataset + "_results"
+    # save config
+    result_dir = "./" + args.dataset + "_results" + args.save_folder
     if not os.path.exists(result_dir):
-        os.makedirs("./" + args.dataset + "_results")
+        os.makedirs(result_dir)
     with open(os.path.join(result_dir, f"config.yaml"), "w") as fp:
         yaml.dump(config, fp)
 
@@ -210,15 +220,15 @@ if __name__ == "__main__":
     best_state = None
     already_trained = False
 
-    writer = SummaryWriter(log_dir="./" + args.dataset + "_results/tensorboard")
+    writer = SummaryWriter(log_dir=result_dir + "/tensorboard")
 
     # training
     for epoch in range(1, args.epochs + 1):
 
-        # check if model was already trained and load it in that case
-        if os.path.exists(f'{args.dataset}_results/weights_{args.fold}.pth'):
+        # check if model was already trained and load the weights and skip training in that case
+        if os.path.exists(result_dir + f'/weights_{args.fold}.pth'):
             print("Model was already trained. Load best state and skip to evaluation")
-            best_state = torch.load(f'{args.dataset}_results/weights_{args.fold}.pth')
+            best_state = torch.load(result_dir + f'/weights_{args.fold}.pth')
             already_trained = True
             break
 
@@ -325,4 +335,4 @@ if __name__ == "__main__":
     print("Saving predictions...")
     # save the predicted labels
     pred_df = pd.DataFrame(predictions, columns=['filename', 'onset', 'offset', 'event_label'])
-    pred_df.to_csv(f'{args.dataset}_results/test_predictions.tsv', sep='\t', index=False)
+    pred_df.to_csv(result_dir + f'/test_predictions.tsv', sep='\t', index=False)
