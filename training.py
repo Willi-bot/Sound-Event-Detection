@@ -121,6 +121,10 @@ if __name__ == "__main__":
         default='',
         type=str
     )
+    parser.add_argument(
+        '--use-ast-features',
+        action='store_true'
+    )
     args = parser.parse_args()
 
     config = vars(args).copy()
@@ -156,20 +160,23 @@ if __name__ == "__main__":
 
     # get required data (if features already extracted loads from file, otherwise extracts features)
     print('Fetching train data...')
-    train_features = get_features("features/train", args.dataset_location, args.dataset, args.fold, args.clip_length, args.n_fft, args.n_mels, hop_length,
-                            win_length, audio_files=train_audio_files)
+    train_folder = ('ast_' if args.use_ast_features else '') + 'train'
+    train_features = get_features("features/" + train_folder, args.dataset_location, args.dataset, args.fold, args.clip_length, args.n_fft, args.n_mels, hop_length,
+                            win_length, audio_files=train_audio_files, get_ast_features=args.use_ast_features)
     train_labels = get_labels('labels/train', args.dataset_location, args.dataset, args.fold, args.clip_length,
                         args.block_length, cls2id, metadata_files=train_label_files)
 
     print('Fetching validation data...')
-    dev_features = get_features("features/dev", args.dataset_location, args.dataset, args.fold, args.clip_length, args.n_fft, args.n_mels, hop_length,
-                            win_length, audio_files=dev_audio_files)
+    dev_folder = ('ast_' if args.use_ast_features else '') + 'dev'
+    dev_features = get_features("features/" + dev_folder, args.dataset_location, args.dataset, args.fold, args.clip_length, args.n_fft, args.n_mels, hop_length,
+                            win_length, audio_files=dev_audio_files, get_ast_features=args.use_ast_features)
     dev_labels = get_labels('labels/dev', args.dataset_location, args.dataset, args.fold, args.clip_length,
                         args.block_length, cls2id, metadata_files=dev_label_files)
 
     print('Fetching test data...')
-    test_features = get_features("features/test", args.dataset_location, args.dataset, args.fold, args.clip_length, args.n_fft, args.n_mels, hop_length,
-                            win_length, audio_files=test_audio_files)
+    test_folder = ('ast_' if args.use_ast_features else '') + 'test'
+    test_features = get_features("features/" + test_folder, args.dataset_location, args.dataset, args.fold, args.clip_length, args.n_fft, args.n_mels, hop_length,
+                            win_length, audio_files=test_audio_files, get_ast_features=args.use_ast_features)
     test_labels = get_labels('labels/test', args.dataset_location, args.dataset, args.fold, args.clip_length,
                         args.block_length, cls2id, metadata_files=test_label_files)
 
