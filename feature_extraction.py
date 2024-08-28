@@ -65,7 +65,7 @@ def extract_mel_spectrograms(audio_files, dataset_location, dataset, clip_length
 
                 features[filename] = mel_file_path
             else:
-                features[(audio_file, i)] = feature
+                features[(i, audio_file)] = feature
 
     return features
 
@@ -95,7 +95,7 @@ def get_features(name, dataset_location, dataset, fold, clip_length, n_fft, n_me
             # TODO
             pass
 
-        features = extract_mel_spectrograms(audio_files, dataset_location, dataset, clip_length, n_fft, n_mels, hop_length, win_length, dir_path, get_ast_features=get_ast_features)
+        features = extract_mel_spectrograms(audio_files, dataset_location, dataset, clip_length, n_fft, n_mels, hop_length, win_length, save_location=dir_path, get_ast_features=get_ast_features)
         print("Done!")
 
     return features

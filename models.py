@@ -106,23 +106,19 @@ class ShakeRCNN(torch.nn.Module):
         super(ShakeRCNN, self).__init__()
         self.dropout = torch.nn.Dropout(dropout)
 
-        self.cnn1 = CNNBlock(1, 8, dropout=dropout, kernel_size=(7, 7), avgpool_kernel=(1, 2), avgpool_stride=(1, 2))
-        self.cnn2 = CNNBlock(8, 16, dropout=dropout, kernel_size=(5, 5), avgpool_kernel=(1, 2), avgpool_stride=(1, 2))
-        self.cnn3 = CNNBlock(16, 32, dropout=dropout, kernel_size=(5, 5), avgpool_kernel=(2, 2), avgpool_stride=(2, 2))
-        self.cnn4 = CNNBlock(32, 64, dropout=dropout, kernel_size=(3, 3), avgpool_kernel=(1, 2), avgpool_stride=(1, 2))
-        self.cnn5 = CNNBlock(64, 128, dropout=dropout, kernel_size=(3, 3), avgpool_kernel=(2, 2), avgpool_stride=(2, 2))
+        self.cnn1 = ShakeCNNBlock(1, 16, dropout=dropout, kernel_size=(5, 5), avgpool_kernel=(2, 2), avgpool_stride=2)
+        self.cnn2 = ShakeCNNBlock(16, 32, dropout=dropout, avgpool_kernel=(2, 2), avgpool_stride=2)
+        self.cnn3 = ShakeCNNBlock(32, 64, dropout=dropout, avgpool_kernel=(1, 2), avgpool_stride=(1, 2))
 
         self.flatten = torch.nn.Flatten(start_dim=2)
-        self.rnn1 = torch.nn.GRU(3072, 1024, batch_first=True, bidirectional=True)
-        self.layernorm1 = torch.nn.LayerNorm(2048)
-        self.rnn2 = torch.nn.GRU(2048, 1024, batch_first=True, bidirectional=True)
-        self.layernorm2 = torch.nn.LayerNorm(2048)
+        self.rnn = torch.nn.GRU(6144, 1024, batch_first=True, bidirectional=True)
+        self.layernorm = torch.nn.LayerNorm(2048)
 
         self.fc1 = torch.nn.Linear(2048, num_classes)
 
         self.sigmoid = torch.nn.Sigmoid()
         self.softmax = torch.nn.Softmax(dim=-1)
-        self.relu = torch.nn.ReLU()
+        self.relu = torch.nn.LeakyReLU()
 
 
     def forward(self, x):
@@ -132,18 +128,14 @@ class ShakeRCNN(torch.nn.Module):
         x = self.cnn1(x)
         x = self.cnn2(x)
         x = self.cnn3(x)
-        x = self.cnn4(x)
-        x = self.cnn5(x)
 
         # bring time axis to the front and flatten last two dimensions
         x = torch.transpose(x, 1, 2)
         x = self.flatten(x)
 
-        x, _ = self.rnn1(x)
-        x = self.layernorm1(x)
+        x, _ = self.rnn(x)
+        x = self.layernorm(x)
         x = self.relu(x)
-        x, _ = self.rnn2(x)
-        x = self.layernorm2(x)
 
         x = self.fc1(x)
 
@@ -160,10 +152,10 @@ class ShakeRCNN(torch.nn.Module):
         return x
 
 
-class CNNBlock(torch.nn.Module):
+class ShakeCNNBlock(torch.nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, avgpool_kernel=(1, 2),
                  avgpool_stride=1, dropout=0):
-        super(CNNBlock, self).__init__()
+        super(ShakeCNNBlock, self).__init__()
         self.dropout = torch.nn.Dropout(dropout)
 
         self.conv = torch.nn.Conv2d(in_channels, 2*out_channels, kernel_size=kernel_size, padding='same', stride=stride)
@@ -188,33 +180,42 @@ class CNNBlock(torch.nn.Module):
         return x
 
 
-class ASTRCNN(torch.nn.Module):
+class ShakeTransformer(torch.nn.Module):
 
-    def __init__(self, num_classes):
-        super(ASTRCNN, self).__init__()
+    def __init__(self, num_classes, dropout):
+        super(ShakeTransformer, self).__init__()
+        self.dropout = torch.nn.Dropout(dropout)
 
-        self.cnn1 = CNNBlock(1, 16, avgpool_kernel=(2, 2), avgpool_stride=2)
-        self.cnn2 = CNNBlock(16, 32, avgpool_kernel=(2, 2), avgpool_stride=2)
-        self.cnn3 = CNNBlock(64, 64)
+        self.cnn1 = ShakeCNNBlock(1, 16, dropout=dropout, kernel_size=(5, 5), avgpool_kernel=(2, 2), avgpool_stride=2)
+        self.cnn2 = ShakeCNNBlock(16, 32, dropout=dropout, avgpool_kernel=(2, 2), avgpool_stride=2)
+        self.cnn3 = ShakeCNNBlock(32, 64, dropout=dropout, avgpool_kernel=(1, 2), avgpool_stride=(1, 2))
 
         self.flatten = torch.nn.Flatten(start_dim=2)
-        self.rnn1 = torch.nn.GRU(6144, 1024, batch_first=True, bidirectional=True)
-        self.layernorm1 = torch.nn.LayerNorm(2048)
+        self.fc1 = torch.nn.Linear(6144, 1024)
+        encoder_layer = torch.nn.TransformerEncoderLayer(d_model=1024, nhead=8, dropout=dropout, batch_first=True)
+        self.encoder = torch.nn.TransformerEncoder(encoder_layer, num_layers=6)
 
-        self.fc1 = torch.nn.Linear(2048, num_classes)
+        self.fc2 = torch.nn.Linear(1024, num_classes)
+
+        self.sigmoid = torch.nn.Sigmoid()
+        self.softmax = torch.nn.Softmax(dim=-1)
+        self.relu = torch.nn.LeakyReLU()
 
     def forward(self, x):
-
         x = torch.unsqueeze(x, 1)
+
         x = self.cnn1(x)
         x = self.cnn2(x)
+        x = self.cnn3(x)
 
         # bring time axis to the front and flatten last two dimensions
         x = torch.transpose(x, 1, 2)
         x = self.flatten(x)
-        x, _ = self.rnn1(x)
-        x = self.layernorm1(x)
 
         x = self.fc1(x)
+        x = self.encoder(x)
+
+        x = self.fc2(x)
+
 
         return x

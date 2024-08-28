@@ -224,8 +224,9 @@ def get_binary_labels(metadata_files, dataset_location, dataset, fold, clip_leng
                 file_path_no_slashes = file_path.replace('/', '_slash_')
                 label_file_path = save_location + '/' + file_path_no_slashes + '_' + str(i) + '.npy'
                 np.save(label_file_path, label)
+                key_name = label_file_path.split('/')[-1]
 
-                labels[(i, file_path)] = label_file_path
+                labels[key_name] = label_file_path
 
 
     return labels
@@ -337,7 +338,7 @@ def get_labels(name, dataset_location, dataset, fold, clip_length, block_length,
             # TODO
 
         if not weak:
-            labels = get_binary_labels(label_files, dataset_location, dataset, fold, clip_length, block_length, cls2id, dir_path)
+            labels = get_binary_labels(label_files, dataset_location, dataset, fold, clip_length, block_length, cls2id, save_location=dir_path)
         else:
             labels = get_weak_labels(label_files, dataset, cls2id)
 

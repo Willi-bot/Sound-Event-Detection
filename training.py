@@ -15,7 +15,7 @@ from evaluation import evaluate, get_prediction_from_raw_output
 from utils import get_classes, get_splits, class_weights, get_test_files, get_labels, dataset_ratio
 from data_loading import get_dataloader
 from feature_extraction import sampling_rates, get_features, extract_mel_spectrograms
-from models import BasicRCNN, ShakeRCNN
+from models import BasicRCNN, ShakeRCNN, ShakeTransformer
 from nnet.CRNN import CRNN
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -112,8 +112,14 @@ if __name__ == "__main__":
     parser.add_argument(
         '--model',
         default='Basic',
-        choices=['Basic', 'ShakeRCNN', 'Baseline'],
+        choices=['Basic', 'ShakeRCNN', 'ShakeTransformer', 'Baseline'],
         required=True,
+        type=str
+    )
+    parser.add_argument(
+        '--optimizer',
+        default='Adam',
+        choices=['Adam', 'AdamW', 'NAdam'],
         type=str
     )
     parser.add_argument(
@@ -180,7 +186,7 @@ if __name__ == "__main__":
     test_labels = get_labels('labels/test', args.dataset_location, args.dataset, args.fold, args.clip_length,
                         args.block_length, cls2id, metadata_files=test_label_files)
 
-    train_loader = get_dataloader(train_features, train_labels, batch_size=args.batch_size, shuffle=True, drop_last=True, use_specaug=args.use_specaug)
+    train_loader = get_dataloader(train_features, train_labels, batch_size=args.batch_size, shuffle=True, drop_last=True, use_specaug=args.use_specaug, num_workers=4)
     dev_loader = get_dataloader(dev_features, dev_labels, batch_size=args.batch_size, shuffle=False, drop_last=False, use_specaug=False)
     test_loader = get_dataloader(test_features, test_labels, batch_size=args.batch_size, shuffle=False, drop_last=False, use_specaug=False)
 
@@ -195,6 +201,8 @@ if __name__ == "__main__":
         model = BasicRCNN(num_classes, 64)
     elif args.model == 'ShakeRCNN':
         model = ShakeRCNN(num_classes, args.dropout)
+    elif args.model == 'ShakeTransformer':
+        model = ShakeTransformer(num_classes, args.dropout)
     elif args.model == 'Baseline':
         model = CRNN(dropout=0.5, rnn_layers=2, n_in_channel=1, nclass=num_classes, attention=True, n_RNN_cell=128,
                      activation='glu', rnn_type='BGRU', kernel_size=[3, 3, 3, 3, 3, 3, 3],
@@ -208,8 +216,16 @@ if __name__ == "__main__":
         model = None
         exit(1)
     config['model'] = {'name': args.model}
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-4)
-    config['optimizer'] = 'Adam'
+
+    if args.optimizer == 'Adam':
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.learning_rate/100.)
+    elif args.optimizer == 'AdamW':
+        optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate, weight_decay=args.learning_rate/100.)
+    elif args.optimizer == 'NAdam':
+        optimizer = torch.optim.NAdam(model.parameters(), lr=args.learning_rate, weight_decay=args.learning_rate/100.)
+    else:
+        exit(1)
+    config['optimizer'] = args.optimizer
 
     # save config
     result_dir = "./" + args.dataset + "_results" + args.save_folder
@@ -229,58 +245,59 @@ if __name__ == "__main__":
 
     writer = SummaryWriter(log_dir=result_dir + "/tensorboard")
 
+    # check if model was already trained and load the weights and skip training in that case
+    if os.path.exists(result_dir + f'/weights_{args.fold}.pth'):
+        print("Model was already trained. Load best state and skip to evaluation")
+        best_state = torch.load(result_dir + f'/weights_{args.fold}.pth')
+        already_trained = True
+
+    model.to(device)
+
     # training
-    for epoch in range(1, args.epochs + 1):
+    if not already_trained:
+        for epoch in range(1, args.epochs + 1):
+            model.train()
+            for index, (data) in tqdm.tqdm(
+                    enumerate(train_loader),
+                    desc=f"Epoch {epoch}",
+                    total=len(train_loader)
+            ):
+                features, labels = data
+                features = features.to(device)
+                output = model(features)
+                output = output.reshape(-1, num_classes)
+                labels = labels.reshape(-1, num_classes).to(device)
+                loss = loss_fn(output, labels)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
 
-        # check if model was already trained and load the weights and skip training in that case
-        if os.path.exists(result_dir + f'/weights_{args.fold}.pth'):
-            print("Model was already trained. Load best state and skip to evaluation")
-            best_state = torch.load(result_dir + f'/weights_{args.fold}.pth')
-            already_trained = True
-            break
+            model.eval()
+            with torch.no_grad():
+                dev_results, dev_class_results = evaluate(
+                    model,
+                    device,
+                    dev_loader,
+                    id2cls,
+                    decision_threshold=args.decision_threshold,
+                    apply_sigmoid=(args.model != 'Baseline')
+                )
+            print(f"dev results at epoch {epoch}:\n{yaml.dump(dev_results)}")
+            writer.add_scalar('F1-Score/dev', dev_results['f1'], epoch)
+            for cls in cls2id.keys():
+                writer.add_scalar(f'F1-Score_({cls})', dev_class_results[cls]['f1'], epoch)
 
-        model.to(device)
-        model.train()
-        for index, (data) in tqdm.tqdm(
-                enumerate(train_loader),
-                desc=f"Epoch {epoch}",
-                total=len(train_loader)
-        ):
-            features, labels = data
-            features = features.to(device)
-            output = model(features)
-            output = output.reshape(-1, num_classes)
-            labels = labels.reshape(-1, num_classes).to(device)
-            loss = loss_fn(output, labels)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            # show and save results
+            if dev_results['f1'] > max_f1:
+                max_f1 = dev_results['f1']
+                best_epoch = epoch
+                best_state = {k: v.cpu() for k, v in model.state_dict().items()}
+                best_results = dev_results.copy()
+                best_class_results = dev_class_results.copy()
 
-        model.eval()
-        dev_results, dev_class_results = evaluate(
-            model,
-            device,
-            dev_loader,
-            id2cls,
-            decision_threshold=args.decision_threshold,
-            apply_sigmoid=(args.model != 'Baseline')
-        )
-        print(f"dev results at epoch {epoch}:\n{yaml.dump(dev_results)}")
-        writer.add_scalar('F1-Score/dev', dev_results['f1'], epoch)
-        for cls in cls2id.keys():
-            writer.add_scalar(f'F1-Score_({cls})', dev_class_results[cls]['f1'], epoch)
-
-        # show and save results
-        if dev_results['f1'] > max_f1:
-            max_f1 = dev_results['f1']
-            best_epoch = epoch
-            best_state = model.cpu().state_dict().copy()
-            best_results = dev_results.copy()
-            best_class_results = dev_class_results.copy()
-
-        if args.early_stopping is not None and epoch - best_epoch > args.early_stopping:
-            print(f"No improvements for more than {args.early_stopping} epochs. Stopping here...")
-            break
+            if args.early_stopping is not None and epoch - best_epoch > args.early_stopping:
+                print(f"No improvements for more than {args.early_stopping} epochs. Stopping here...")
+                break
 
     if not already_trained:
         print(f"Best dev results found at epoch {best_epoch + 1}:\n{yaml.dump(best_results)}")
@@ -294,14 +311,15 @@ if __name__ == "__main__":
 
     model.load_state_dict(best_state)
     model.eval()
-    test_results, test_class_results = evaluate(
-        model,
-        device,
-        test_loader,
-        id2cls,
-        decision_threshold=args.decision_threshold,
-        apply_sigmoid=(args.model != 'Baseline')
-    )
+    with torch.no_grad():
+        test_results, test_class_results = evaluate(
+            model,
+            device,
+            test_loader,
+            id2cls,
+            decision_threshold=args.decision_threshold,
+            apply_sigmoid=(args.model != 'Baseline')
+        )
     print(f"Best test results:\n{yaml.dump(test_results)}")
     with open(os.path.join(result_dir, f"test_fold{args.fold}.yaml"), "w") as fp:
         yaml.dump(test_results, fp)
@@ -316,7 +334,8 @@ if __name__ == "__main__":
     for test_file in tqdm.tqdm(test_files):
         # turn audio to features ready for model
         features = extract_mel_spectrograms([test_file], args.dataset_location, args.dataset, args.clip_length,
-                                            args.n_fft, args.n_mels, hop_length, win_length)
+                                            args.n_fft, args.n_mels, hop_length, win_length,
+                                            get_ast_features=args.use_ast_features)
 
         features = list(features.values())
 

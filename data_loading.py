@@ -39,7 +39,7 @@ class AudioClipDataset(Dataset):
         return features.float(), labels
 
 
-def get_dataloader(features, labels, batch_size, shuffle=False, drop_last=False, use_specaug=False):
+def get_dataloader(features, labels, batch_size, shuffle=False, drop_last=False, use_specaug=False, num_workers=0):
     # turn dict to list
     features_list, labels_list = [], []
     for key in features.keys():
@@ -49,6 +49,6 @@ def get_dataloader(features, labels, batch_size, shuffle=False, drop_last=False,
 
     dataset = AudioClipDataset(features_list, labels_list, use_specaug=use_specaug)
 
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, drop_last=drop_last)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, drop_last=drop_last, num_workers=num_workers, pin_memory=True)
 
     return dataloader
