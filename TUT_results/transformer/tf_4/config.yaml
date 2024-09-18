@@ -2,11 +2,11 @@ batch_size: 8
 block_length: 40
 clip_length: 10000
 dataset: TUT
-dataset_location: /nas/student/WilliSchiebelbein/
+dataset_location: dataset/
 decision_threshold: 0.5
 dropout: 0.2
-early_stopping: 100
-epochs: 1000
+early_stopping: 40
+epochs: 200
 fold: 4
 learning_rate: 0.0001
 model:
@@ -14,10 +14,10 @@ model:
 n_fft: 2048
 n_mels: 128
 normalize: false
-optimizer: NAdam
+optimizer: Adam
 overlap: 0.5
-save_folder: tf_4
+save_folder: /transformer/tf_4
 seed: 42
 use_ast_features: true
 use_specaug: true
-use_weights: true
+use_weights: false

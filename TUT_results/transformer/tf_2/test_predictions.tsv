@@ -1,0 +1,126 @@
+filename	onset	offset	event_label
+audio/street/b009.wav	150.0	160.0	people walking
+audio/street/b009.wav	170.0	180.0	people walking
+audio/street/b009.wav	220.0	230.0	people walking
+audio/street/b009.wav	0.0	120.0	car
+audio/street/b009.wav	130.0	150.0	car
+audio/street/b009.wav	170.0	232.4	car
+audio/street/b009.wav	20.0	30.0	large vehicle
+audio/street/b009.wav	50.0	60.0	large vehicle
+audio/street/b009.wav	120.0	170.0	large vehicle
+audio/street/a124.wav	0.0	120.0	car
+audio/street/a124.wav	130.0	140.0	car
+audio/street/a124.wav	150.0	170.0	car
+audio/street/a124.wav	180.0	300.0	car
+audio/street/a124.wav	80.0	90.0	large vehicle
+audio/street/a124.wav	113.96000000000001	114.0	large vehicle
+audio/street/a124.wav	114.2	114.36	large vehicle
+audio/street/a124.wav	114.76	114.92	large vehicle
+audio/street/a124.wav	115.64	115.72	large vehicle
+audio/street/a124.wav	120.0	130.0	large vehicle
+audio/street/a124.wav	140.0	150.0	large vehicle
+audio/street/a124.wav	160.0	170.0	large vehicle
+audio/street/a124.wav	180.0	185.04	large vehicle
+audio/street/a124.wav	185.32	200.0	large vehicle
+audio/street/a124.wav	280.0	290.0	large vehicle
+audio/street/a124.wav	100.0	110.0	people speaking
+audio/street/a124.wav	120.0	130.0	people speaking
+audio/street/a124.wav	300.0	300.96	people speaking
+audio/street/a124.wav	140.04	140.28	children
+audio/street/a124.wav	140.4	140.6	children
+audio/street/a124.wav	140.92000000000002	141.12	children
+audio/street/a124.wav	141.52	141.56	children
+audio/street/a124.wav	141.72	142.48	children
+audio/street/a124.wav	142.6	142.76	children
+audio/street/a124.wav	142.84	143.28	children
+audio/street/a124.wav	143.48	144.04	children
+audio/street/a124.wav	144.24	144.84	children
+audio/street/a124.wav	145.0	146.44	children
+audio/street/a124.wav	146.72	146.88	children
+audio/street/a124.wav	147.08	147.24	children
+audio/street/a124.wav	147.52	147.56	children
+audio/street/a124.wav	147.68	147.76	children
+audio/street/a124.wav	147.92000000000002	148.0	children
+audio/street/a124.wav	149.28	149.84	children
+audio/street/b091.wav	10.0	240.0	car
+audio/street/b091.wav	0.0	10.0	large vehicle
+audio/street/b091.wav	110.0	120.0	large vehicle
+audio/street/b091.wav	190.0	200.0	large vehicle
+audio/street/b091.wav	200.08	202.88	large vehicle
+audio/street/b091.wav	203.04	203.28	large vehicle
+audio/street/b091.wav	203.4	203.64000000000001	large vehicle
+audio/street/b091.wav	203.84	203.96	large vehicle
+audio/street/b091.wav	204.20000000000002	204.52	large vehicle
+audio/street/b091.wav	204.96	205.44	large vehicle
+audio/street/b091.wav	205.68	205.72	large vehicle
+audio/street/b091.wav	205.84	206.32	large vehicle
+audio/street/b091.wav	206.64000000000001	209.64000000000001	large vehicle
+audio/street/b091.wav	209.68	210.0	large vehicle
+audio/street/b098.wav	0.0	10.0	people walking
+audio/street/b098.wav	60.0	70.0	people walking
+audio/street/b098.wav	90.0	110.0	people walking
+audio/street/b098.wav	144.48	144.68	people walking
+audio/street/b098.wav	170.0	200.0	people walking
+audio/street/b098.wav	0.0	240.0	car
+audio/street/b098.wav	20.0	20.080000000000002	large vehicle
+audio/street/b098.wav	20.32	20.92	large vehicle
+audio/street/b098.wav	21.0	21.080000000000002	large vehicle
+audio/street/b098.wav	21.12	21.16	large vehicle
+audio/street/b098.wav	21.32	21.84	large vehicle
+audio/street/b098.wav	22.2	22.400000000000002	large vehicle
+audio/street/b098.wav	22.44	22.6	large vehicle
+audio/street/b098.wav	22.72	23.04	large vehicle
+audio/street/b098.wav	23.16	24.8	large vehicle
+audio/street/b098.wav	24.84	26.72	large vehicle
+audio/street/b098.wav	27.080000000000002	27.16	large vehicle
+audio/street/b098.wav	27.32	27.36	large vehicle
+audio/street/b098.wav	27.44	30.0	large vehicle
+audio/street/b098.wav	100.0	110.0	people speaking
+audio/street/a003.wav	0.0	10.0	people walking
+audio/street/a003.wav	40.0	50.0	people walking
+audio/street/a003.wav	80.0	83.32000000000001	people walking
+audio/street/a003.wav	83.44	84.2	people walking
+audio/street/a003.wav	84.32000000000001	86.88	people walking
+audio/street/a003.wav	87.16	87.2	people walking
+audio/street/a003.wav	87.32000000000001	87.56	people walking
+audio/street/a003.wav	87.84	87.96000000000001	people walking
+audio/street/a003.wav	88.2	90.0	people walking
+audio/street/a003.wav	120.0	130.0	people walking
+audio/street/a003.wav	40.0	50.0	car
+audio/street/a003.wav	60.0	70.0	car
+audio/street/a003.wav	140.0	160.0	car
+audio/street/a003.wav	200.04	200.08	car
+audio/street/a003.wav	200.4	200.68	car
+audio/street/a003.wav	200.84	201.0	car
+audio/street/a003.wav	201.16	201.72	car
+audio/street/a003.wav	201.96	202.0	car
+audio/street/a003.wav	202.20000000000002	202.56	car
+audio/street/a003.wav	202.88	203.0	car
+audio/street/a003.wav	203.08	203.32	car
+audio/street/a003.wav	203.68	203.76	car
+audio/street/a003.wav	203.92000000000002	203.96	car
+audio/street/a003.wav	204.08	204.16	car
+audio/street/a003.wav	204.72	205.0	car
+audio/street/a003.wav	205.72	205.84	car
+audio/street/a003.wav	206.0	206.08	car
+audio/street/a003.wav	206.48000000000002	206.52	car
+audio/street/a003.wav	206.88	207.04	car
+audio/street/a003.wav	207.4	207.44	car
+audio/street/a003.wav	207.64000000000001	207.76	car
+audio/street/a003.wav	208.04	208.8	car
+audio/street/a003.wav	208.84	210.0	car
+audio/street/a003.wav	220.0	240.0	car
+audio/street/a003.wav	90.0	100.0	large vehicle
+audio/street/a003.wav	120.0	130.0	large vehicle
+audio/street/a003.wav	140.0	160.0	large vehicle
+audio/street/b093.wav	0.0	45.64	people walking
+audio/street/b093.wav	45.72	46.4	people walking
+audio/street/b093.wav	46.52	210.0	people walking
+audio/street/b093.wav	0.0	20.0	car
+audio/street/b093.wav	40.0	100.0	car
+audio/street/b093.wav	110.0	210.0	car
+audio/street/b093.wav	30.0	50.0	large vehicle
+audio/street/b093.wav	10.0	30.0	people speaking
+audio/street/b093.wav	60.0	110.0	people speaking
+audio/street/b093.wav	120.0	150.0	people speaking
+audio/street/b093.wav	180.0	210.0	people speaking

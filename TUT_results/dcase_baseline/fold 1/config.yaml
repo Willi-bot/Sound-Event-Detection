@@ -1,0 +1,23 @@
+batch_size: 24
+block_length: 40
+clip_length: 10000
+dataset: TUT
+dataset_location: dataset/
+decision_threshold: 0.5
+dropout: 0.5
+early_stopping: null
+epochs: 200
+fold: 1
+learning_rate: 0.001
+model:
+  name: Baseline
+n_fft: 2048
+n_mels: 128
+normalize: false
+optimizer: Adam
+overlap: 0.5
+save_folder: /dcase_baseline
+seed: 42
+use_ast_features: false
+use_specaug: true
+use_weights: false
