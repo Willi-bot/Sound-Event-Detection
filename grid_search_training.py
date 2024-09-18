@@ -216,7 +216,7 @@ if __name__ == "__main__":
                         test_loader,
                         id2cls,
                         decision_threshold=args.decision_threshold,
-                        apply_sigmoid=(args.model != 'Baseline')
+                        apply_sigmoid=False
                     )
 
                 if test_results['f1'] > best_f1:

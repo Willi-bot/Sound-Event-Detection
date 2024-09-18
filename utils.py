@@ -43,18 +43,14 @@ def get_classes(dataset, dataset_location, fold):
     elif dataset == 'BirdSED':
         # the fold determines which variant of BirdSED is done
         # 1 = Normal
-        # 2 = Top Ten classes
-        # 3 = Single label per file
+        # 2 = 10k
+        # 3 = 20k
         # 4 = Binary BirdSED
-        if fold in [1, 3]:
+        if fold in [1, 2, 3]:
             classes = []
             with open(dataset_location + dataset + '/bird_classes.txt') as f:
                     for line in f.readlines():
                         classes.append(line.replace('\n', ''))
-        elif fold == 2:
-            classes = ['Carduelis_chloris', 'Milvus_migrans', 'Lanius_collurio', 'Columba_palumbus',
-                       'Coturnix_coturnix', 'Phylloscopus_sibilatrix', 'Passer_domesticus', 'Dendrocopos_major',
-                       'Loxia_curvirostra', 'Lullula_arborea']
         else:
             classes = ['bird']
     else:
@@ -96,8 +92,9 @@ def get_splits(dataset, dataset_location, fold=None, use_weak=False, use_unlabel
 
         # for train
         # get strong real
-        train_files += glob.glob(dataset_dir + '/audio/train/strong_label_real_16k/*.wav')
-        train_labels.append(dataset_dir + '/metadata/train/audioset_strong.tsv')
+        # should go unused because it's not part of the 2022 dataset
+        # train_files += glob.glob(dataset_dir + '/audio/train/strong_label_real_16k/*.wav')
+        # train_labels.append(dataset_dir + '/metadata/train/audioset_strong.tsv')
 
         # get strong synthetic
         train_files += glob.glob(dataset_dir + '/audio/train/synthetic21_train/soundscapes_16k/*.wav')
@@ -128,7 +125,9 @@ def get_splits(dataset, dataset_location, fold=None, use_weak=False, use_unlabel
 
         # for test
         # get strong real
-        test_files += glob.glob(dataset_dir + '/audio/eval21_16k/*.wav')
+        eval_files_df = pd.read_csv(dataset_dir + "/metadata/Ground-truth/mapped_ground_truth_eval.tsv", delimiter="\t")
+        test_files = eval_files_df['filename'].unique().tolist()
+        test_files = [dataset_dir + '/audio/eval21_16k/' + filename for filename in test_files]
         test_labels.append(dataset_dir + '/metadata/Ground-truth/mapped_ground_truth_eval.tsv')
         test_files = [file.replace(dataset_dir + '/', '', 1) for file in test_files]
     elif dataset == 'BirdSED':
@@ -139,11 +138,11 @@ def get_splits(dataset, dataset_location, fold=None, use_weak=False, use_unlabel
         elif fold == 2:
             soundscapes = 'soundscapes'
             metadata = 'metadata'
-            split = '/splits/top_ten'
+            split = '/splits/stratified/10k'
         elif fold == 3:
-            soundscapes = 'single_label_soundscapes'
+            soundscapes = 'soundscapes'
             metadata = 'metadata'
-            split = '/splits/single_label'
+            split = '/splits/stratified/20k'
         else:
             soundscapes = 'soundscapes'
             metadata = 'binary_metadata'
@@ -289,18 +288,18 @@ def get_test_files(dataset_location, dataset, fold=None):
         test_df = pd.read_csv(file_path, sep='\t', names=['filename', 'scene'], header=None)
         test_files = test_df['filename'].tolist()
     elif dataset == 'desed_2022':
-        file_path = dataset_location + f'desed_2022/audio/eval21_16k/*.wav'
-        test_files = glob.glob(file_path)
-        test_files = [file.replace(dataset_location + 'desed_2022/', '') for file in test_files]
+        eval_files_df = pd.read_csv(dataset_location + "desed_2022/metadata/Ground-truth/mapped_ground_truth_eval.tsv", delimiter="\t")
+        test_files = eval_files_df['filename'].unique().tolist()
+        test_files = ['/audio/eval21_16k/' + filename for filename in test_files]
     elif dataset == 'BirdSED':
         if fold == 1:
             with open(dataset_location + dataset + '/splits/stratified/test.txt', 'r') as f:
                 test_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
         elif fold == 2:
-            with open(dataset_location + dataset + '/splits/top_ten/test.txt', 'r') as f:
+            with open(dataset_location + dataset + '/splits/stratified/10k/test.txt', 'r') as f:
                 test_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
         elif fold == 3:
-            with open(dataset_location + dataset + '/splits/single_label/test.txt', 'r') as f:
+            with open(dataset_location + dataset + '/splits/stratified/20k/test.txt', 'r') as f:
                 test_files = ['single_label_soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
         else:
             with open(dataset_location + dataset + '/splits/test.txt', 'r') as f:

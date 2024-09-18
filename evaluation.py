@@ -30,8 +30,8 @@ def evaluate(model, device, data_loader, id2cls, decision_threshold=0.5, apply_s
     y_hat = np.reshape(y_hat, (-1, num_classes))
 
     f1s = f1_score(y, y_hat, average=None).tolist()
-    precisions = precision_score(y, y_hat, average=None).tolist()
-    recalls = recall_score(y, y_hat, average=None).tolist()
+    precisions = precision_score(y, y_hat, average=None, zero_division=0.0).tolist()
+    recalls = recall_score(y, y_hat, average=None, zero_division=0.0).tolist()
     if num_classes == 1:
         class_results = {list(id2cls.values())[0]: {'f1': f1s[1], 'precision': precisions[1], 'recall': recalls[1]}}
     else:
@@ -39,9 +39,9 @@ def evaluate(model, device, data_loader, id2cls, decision_threshold=0.5, apply_s
 
     y = y.flatten()
     y_hat = y_hat.flatten()
-    results['recall'] = float(recall_score(y, y_hat))
-    results['precision'] = float(precision_score(y, y_hat))
-    results['f1'] = float(f1_score(y, y_hat))
+    results['recall'] = float(recall_score(y, y_hat, zero_division=0.0))
+    results['precision'] = float(precision_score(y, y_hat, zero_division=0.0))
+    results['f1'] = float(f1_score(y, y_hat, zero_division=0.0))
     results['accuracy'] = float(accuracy_score(y, y_hat))
 
     return results, class_results

@@ -288,7 +288,7 @@ if __name__ == "__main__":
                 writer.add_scalar(f'F1-Score_({cls})', dev_class_results[cls]['f1'], epoch)
 
             # show and save results
-            if dev_results['f1'] > max_f1:
+            if dev_results['f1'] >= max_f1:
                 max_f1 = dev_results['f1']
                 best_epoch = epoch
                 best_state = {k: v.cpu() for k, v in model.state_dict().items()}
@@ -330,33 +330,34 @@ if __name__ == "__main__":
     # get every test file
     test_files = get_test_files(args.dataset_location, args.dataset, fold=args.fold)
 
-    predictions = []
-    for test_file in tqdm.tqdm(test_files):
-        # turn audio to features ready for model
-        features = extract_mel_spectrograms([test_file], args.dataset_location, args.dataset, args.clip_length,
-                                            args.n_fft, args.n_mels, hop_length, win_length,
-                                            get_ast_features=args.use_ast_features)
+    with torch.no_grad():
+        predictions = []
+        for test_file in tqdm.tqdm(test_files):
+            # turn audio to features ready for model
+            features = extract_mel_spectrograms([test_file], args.dataset_location, args.dataset, args.clip_length,
+                                                args.n_fft, args.n_mels, hop_length, win_length,
+                                                get_ast_features=args.use_ast_features)
 
-        features = list(features.values())
+            features = list(features.values())
 
-        # pass features to model
-        raw_prediction = []
-        for feature in features:
-            feature = torch.from_numpy(feature).float().unsqueeze(0).to(device)
-            output = model(feature)
-            raw_prediction.append(output.squeeze())
+            # pass features to model
+            raw_prediction = []
+            for feature in features:
+                feature = torch.from_numpy(feature).float().unsqueeze(0).to(device)
+                output = model(feature)
+                raw_prediction.append(output.squeeze().to('cpu'))
 
-        raw_prediction = torch.cat(raw_prediction, dim=0)
+            raw_prediction = torch.cat(raw_prediction, dim=0)
 
-        test_file_path = args.dataset_location + args.dataset + '/' + test_file
-        audio_duration = librosa.get_duration(path=test_file_path)
+            test_file_path = args.dataset_location + args.dataset + '/' + test_file
+            audio_duration = librosa.get_duration(path=test_file_path)
 
-        # turn output into appropriate labels with this format:
-        prediction = get_prediction_from_raw_output(raw_prediction, id2cls, audio_duration, args.block_length,
-                                                    test_file, decision_threshold=args.decision_threshold,
-                                                    apply_sigmoid = (args.model != 'Baseline'))
+            # turn output into appropriate labels with this format:
+            prediction = get_prediction_from_raw_output(raw_prediction, id2cls, audio_duration, args.block_length,
+                                                        test_file, decision_threshold=args.decision_threshold,
+                                                        apply_sigmoid = (args.model != 'Baseline'))
 
-        predictions += prediction
+            predictions += prediction
 
     print("Saving predictions...")
     # save the predicted labels

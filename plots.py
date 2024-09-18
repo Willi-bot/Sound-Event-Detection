@@ -9,13 +9,13 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 def plot_class_percentages(class_length, total_length, label):
-    classes = list(class_length.keys())
-    event_lengths = list(class_length.values())
+    classes = sorted(class_length.keys())
+    event_lengths = [class_length[key] for key in classes]
     plt.bar(classes, event_lengths, color='mediumspringgreen')
     plt.xlabel('Classes')
     plt.ylabel('Total length in seconds')
     plt.title(f'Total length distribution ({label})')
-    plt.xticks(rotation=90, fontsize='small')
+    plt.xticks(rotation=60, fontsize='small')
     plt.subplots_adjust(bottom=0.2)
     plt.tight_layout()
     plt.savefig(f'plots/{label}_total.png')
@@ -26,7 +26,7 @@ def plot_class_percentages(class_length, total_length, label):
     plt.xlabel('Classes')
     plt.ylabel('Percentage')
     plt.title(f'Percentage Distribution ({label})')
-    plt.xticks(rotation=90, fontsize='small')
+    plt.xticks(rotation=60, fontsize='small')
     plt.ylim(0, 1)
     plt.subplots_adjust(bottom=0.2)
     plt.tight_layout()
@@ -36,13 +36,13 @@ def plot_class_percentages(class_length, total_length, label):
 
 
 def plot_class_counts(class_counts, total_count, label):
-    classes = list(class_counts.keys())
-    event_counts = list(class_counts.values())
+    classes = sorted(class_counts.keys())
+    event_counts = [class_counts[key] for key in classes]
     plt.bar(classes, event_counts, color='mediumspringgreen')
     plt.xlabel('Classes')
     plt.ylabel('Total # of class appearances')
     plt.title(f'Total distribution ({label})')
-    plt.xticks(rotation=45)
+    plt.xticks(rotation=60)
     plt.subplots_adjust(bottom=0.2)
     plt.tight_layout()
     plt.savefig(f'plots/{label}_total.png')
@@ -53,7 +53,7 @@ def plot_class_counts(class_counts, total_count, label):
     plt.xlabel('Classes')
     plt.ylabel('Percentage')
     plt.title(f'Percentage Distribution ({label})')
-    plt.xticks(rotation=45)
+    plt.xticks(rotation=60)
     plt.ylim(0, 1)
     plt.subplots_adjust(bottom=0.2)
     plt.tight_layout()
@@ -149,7 +149,7 @@ if __name__ == '__main__':
         class_length, total_length = get_class_lengths(audio_path, meta_path, 'TUT')
         TUT_data_dict["Total length for each class (in s)"] = class_length
         TUT_data_dict["Total length of dataset (in s)"] = total_length
-        plot_class_percentages(class_length, total_length, "TUT Data")
+        plot_class_percentages(class_length, total_length, "TUT Sound events 2017")
 
         ratios = get_pos_neg_ratio(class_length, total_length)
         TUT_data_dict["Ratio \'Class not present\' to \'Class present\' (for every class over every audio file)"] = ratios
