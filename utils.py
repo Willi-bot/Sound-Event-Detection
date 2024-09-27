@@ -184,7 +184,7 @@ def get_binary_labels(metadata_files, dataset_location, dataset, fold, clip_leng
             event_keys = ['onset', 'offset', 'event_label']
         elif dataset == 'BirdSED':
             metadata = pd.read_csv(metadata_file, sep='\t', names=['onset', 'offset', 'event'], header=None)
-            single_label = 'single_label_' if fold == 3 else ''
+            single_label = 'single_label_' if fold == 4 else ''
             filenames = [single_label + 'soundscapes/audio/' + metadata_file.split('/')[-1]]
             event_keys = ['onset', 'offset', 'event']
         else:
@@ -300,7 +300,7 @@ def get_test_files(dataset_location, dataset, fold=None):
                 test_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
         elif fold == 3:
             with open(dataset_location + dataset + '/splits/stratified/20k/test.txt', 'r') as f:
-                test_files = ['single_label_soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
+                test_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
         else:
             with open(dataset_location + dataset + '/splits/test.txt', 'r') as f:
                 test_files = ['soundscapes/audio/' + file.replace('\n', '') for file in f.readlines()]
