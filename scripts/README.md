@@ -1,6 +1,6 @@
 This folder contains the script used to generate the BirdSED dataset.
 
-The audio files for the bird sounds are from [xeno-canto](https://xeno-canto.org/). They can be downloaded using [xenopy](https://github.com/realzza/xenopy)
+The audio files for the bird sounds are from [xeno-canto](https://xeno-canto.org/). They can be downloaded using [xenopy](https://github.com/realzza/xenopy).
 
 Different white noise audio clips were downloaded from [freesound](freesound.org). For the background noises, multiple 
 audio clips from the ESC50 dataset were taken. The list of audio files used can be found in esc50.txt
